@@ -1,0 +1,28 @@
+'use client';
+
+interface WordDisplayProps {
+    word: string;
+    onReplay: () => void;
+    canReplay: boolean;
+}
+
+export default function WordDisplay({ word, onReplay, canReplay }: WordDisplayProps) {
+    return (
+        <div className="flex flex-col items-center justify-center p-12">
+            <button
+                onClick={onReplay}
+                disabled={!canReplay}
+                className="group relative"
+            >
+                <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    {word}
+                </div>
+                {canReplay && (
+                    <div className="mt-4 text-sm text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Click to replay audio
+                    </div>
+                )}
+            </button>
+        </div>
+    );
+}

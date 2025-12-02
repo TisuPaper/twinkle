@@ -1,3 +1,11 @@
-export const predefinedWords = ['jump', 'happy', 'cook'] as const;
+import { LearnWordData } from './processor';
 
-export type PredefinedWord = typeof predefinedWords[number];
+// Hardcoded data representing AI prompt result
+export const mockAIResult: LearnWordData = {
+    ageLevel: '4-5',
+    difficulty: {
+        easy: ['cat', 'dog'],
+        medium: ['jump', 'happy'],
+        hard: ['cook', 'garden']
+    }
+};
