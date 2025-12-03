@@ -7,24 +7,30 @@ import * as THREE from 'three';
 
 function HelloKitty() {
     const group = useRef<THREE.Group>(null);
-    const fbx = useFBX('/hellokitty/base-3.fbx');
-    const { actions, names } = useAnimations(fbx.animations, group);
+    const fbx = useFBX('/hellokitty/helloModel/base_basic_shaded.fbx');
+    const { animations: runAnimations } = useFBX('/hellokitty/helloModel/Fast Run.fbx');
+
+    // Rename the animation to something predictable
+    if (runAnimations.length > 0) {
+        runAnimations[0].name = 'Run';
+    }
+
+    const { actions } = useAnimations(runAnimations, group);
 
     // Movement state
     const [targetPosition, setTargetPosition] = useState(new THREE.Vector3(0, 0, 0));
     const speed = 0.05;
 
     useEffect(() => {
-        // Play the first animation found, assuming it might be a run or idle
-        if (names.length > 0) {
-            // Try to find a 'run' or 'walk' animation, otherwise pick the first one
-            const runAnim = names.find(n => n.toLowerCase().includes('run')) || names[0];
-            actions[runAnim]?.reset().fadeIn(0.5).play();
+        // Play the 'Run' animation
+        const action = actions['Run'];
+        if (action) {
+            action.reset().fadeIn(0.5).play();
         }
 
         // Pick a random spot to start
         pickNewTarget();
-    }, [actions, names]);
+    }, [actions]);
 
     const pickNewTarget = () => {
         const x = (Math.random() - 0.5) * 20; // Random x between -10 and 10
@@ -54,7 +60,6 @@ function HelloKitty() {
 
     return (
         <group ref={group} dispose={null} scale={0.01}>
-            {/* Scale might need adjustment depending on the FBX unit */}
             <primitive object={fbx} />
         </group>
     );
