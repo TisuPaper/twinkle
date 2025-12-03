@@ -1,27 +1,25 @@
 import { Environment, OrbitControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { easing } from "maath";
-import { useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
-import { Book } from "./Book";
-import { pageAtom } from "./bookState";
+import Book3D from "./Book3D";
 
-export const BookScene = () => {
-    const group = useRef<any>();
-    const [, setPage] = useAtom(pageAtom);
+interface BookSceneProps {
+    pages?: {
+        left: React.ReactNode;
+        right: React.ReactNode;
+    }[];
+    flippedIndex?: number;
+}
+
+export const BookScene = ({ pages = [], flippedIndex = 0 }: BookSceneProps) => {
+    const group = useRef<any>(null);
     const [started, setStarted] = useState(false);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
             setStarted(true);
         }, 500);
-        return () => clearTimeout(timeout);
-    }, []);
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            setPage(3);
-        }, 1500);
         return () => clearTimeout(timeout);
     }, []);
 
@@ -34,8 +32,8 @@ export const BookScene = () => {
 
     return (
         <>
-            <group ref={group} position-z={0} rotation-x={-Math.PI / 4} scale={[1.5, 1.5, 1.5]}>
-                <Book />
+            <group ref={group} position-z={0} rotation-x={-Math.PI / 4} scale={[0.35, 0.35, 0.35]}>
+                <Book3D pages={pages} flippedIndex={flippedIndex} />
             </group>
 
             <OrbitControls />

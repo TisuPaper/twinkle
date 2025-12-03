@@ -12,7 +12,7 @@ import WordDisplay from './components/WordDisplay';
 import SpeechRecognition from './components/SpeechRecognition';
 import WordTracing from './components/WordTracing';
 import { SpeakerIcon } from './components/Icons';
-import Eggy3D from './components/Eggy3D';
+import { EggyModel } from './components/Eggy3D';
 import { BookScene } from './components/BookScene';
 
 
@@ -205,6 +205,100 @@ export default function LearnWordPage() {
 
     const currentWord = getCurrentWord();
 
+    // --- Page Generation ---
+    const pages = state.levels[state.currentLevelIndex].words.map((wordData, index) => {
+        const isCurrentWord = index === state.levels[state.currentLevelIndex].currentWordIndex;
+
+        // We only render the interactive content if it's the current word.
+        // For other words, we could render a static snapshot or just the word text.
+        // For simplicity, we'll render the full component but it might only be interactive when active.
+        // Actually, since we are flipping, the "active" page is the one visible.
+
+        return {
+            left: (
+                <group position={[0, 0, 1.0]} rotation={[0, 0, 0]} scale={0.8}>
+                    <EggyModel />
+                </group>
+            ),
+            right: (
+                <div className="w-full h-full p-8 flex flex-col justify-center">
+                    <ProgressBar
+                        level={state.levels[state.currentLevelIndex].level}
+                        chapterNumber={state.currentLevelIndex + 1}
+                        wordIndex={index}
+                        totalWords={state.levels[state.currentLevelIndex].words.length}
+                        currentStep={isCurrentWord ? currentStep : 'SHOW'}
+                        currentWord={wordData.word}
+                    />
+
+                    <div className="mt-6 flex-1 flex flex-col justify-center">
+                        {isCurrentWord ? (
+                            <>
+                                {currentStep === 'SHOW' && (
+                                    <div className="text-center">
+                                        <div className="flex justify-center mb-6">
+                                            <SpeakerIcon className="w-24 h-24" />
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-gray-800 mb-4">Listen to the word</h2>
+                                        <WordDisplay word={wordData.word} onReplay={handleReplay} canReplay={audioBlocked} />
+                                        {audioPlaying && (
+                                            <div className="mt-8 flex justify-center">
+                                                <div className="flex items-center gap-3 text-purple-600">
+                                                    <div className="w-4 h-4 bg-purple-600 rounded-full animate-pulse"></div>
+                                                    <span className="text-xl font-semibold">Playing audio...</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {audioBlocked && !audioPlaying && (
+                                            <div className="mt-8 flex justify-center">
+                                                <div className="flex items-center gap-3 text-orange-600 animate-bounce">
+                                                    <span className="text-lg font-semibold">👆 Click the word to play audio</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {currentStep === 'REPLAY' && (
+                                    <div className="text-center">
+                                        <div className="flex justify-center mb-6">
+                                            <SpeakerIcon className="w-24 h-24" />
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-gray-800 mb-4">Click the word to hear it again</h2>
+                                        <WordDisplay word={wordData.word} onReplay={handleReplay} canReplay={!audioPlaying} />
+                                        <button
+                                            onClick={handleStepComplete}
+                                            className="mt-8 px-10 py-4 bg-blue-500 text-white rounded-2xl text-xl font-black shadow-[0_6px_0_0_rgba(59,130,246,1)] hover:shadow-[0_3px_0_0_rgba(59,130,246,1)] hover:translate-y-[3px] active:shadow-none active:translate-y-[6px] transition-all"
+                                        >
+                                            Continue to Speaking
+                                        </button>
+                                    </div>
+                                )}
+
+                                {currentStep === 'SPEAK' && (
+                                    <SpeechRecognition
+                                        targetWord={wordData.word}
+                                        onSuccess={handleStepComplete}
+                                        onRetry={() => { }}
+                                    />
+                                )}
+
+                                {currentStep === 'TRACE' && (
+                                    <WordTracing word={wordData.word} onComplete={handleStepComplete} />
+                                )}
+                            </>
+                        ) : (
+                            // Placeholder for non-active words (or completed words)
+                            <div className="text-center opacity-50">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-4">{wordData.word}</h2>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        };
+    });
+
     return (
         <div className="min-h-screen bg-[#F5F5DC] flex items-center justify-center p-4 font-sans relative overflow-hidden">
             {/* 3D Book Background */}
@@ -215,93 +309,15 @@ export default function LearnWordPage() {
                 }}>
                     <group position-y={0}>
                         <Suspense fallback={null}>
-                            <BookScene />
+                            <BookScene
+                                pages={pages}
+                                flippedIndex={state.levels[state.currentLevelIndex].currentWordIndex}
+                            />
                         </Suspense>
                     </group>
                 </Canvas>
                 <Loader />
             </div>
-
-            <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: showUI ? 1 : 0, scale: showUI ? 1 : 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-[85vw] h-[85vh] bg-white/25 backdrop-blur-3xl border border-white/50 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] p-8 relative z-10 flex items-center justify-center"
-            >
-                <div className="w-full h-full grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                    {/* Character Column - Takes 5/12 columns */}
-                    <div className="hidden md:flex md:col-span-5 justify-center items-center h-full w-full relative">
-                        <Eggy3D />
-                    </div>
-
-                    {/* Content Column - Takes 7/12 columns */}
-                    <div className="md:col-span-7 relative h-full flex flex-col justify-center px-8">
-                        <ProgressBar
-                            level={currentLevel.level}
-                            chapterNumber={state.currentLevelIndex + 1}
-                            wordIndex={currentLevel.currentWordIndex}
-                            totalWords={currentLevel.words.length}
-                            currentStep={currentStep}
-                            currentWord={currentWord}
-                        />
-
-                        <div className="mt-6 flex-1 flex flex-col justify-center">
-                            {currentStep === 'SHOW' && (
-                                <div className="text-center">
-                                    <div className="flex justify-center mb-6">
-                                        <SpeakerIcon className="w-24 h-24" />
-                                    </div>
-                                    <h2 className="text-3xl font-bold text-gray-800 mb-4">Listen to the word</h2>
-                                    <WordDisplay word={currentWord} onReplay={handleReplay} canReplay={audioBlocked} />
-                                    {audioPlaying && (
-                                        <div className="mt-8 flex justify-center">
-                                            <div className="flex items-center gap-3 text-purple-600">
-                                                <div className="w-4 h-4 bg-purple-600 rounded-full animate-pulse"></div>
-                                                <span className="text-xl font-semibold">Playing audio...</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {audioBlocked && !audioPlaying && (
-                                        <div className="mt-8 flex justify-center">
-                                            <div className="flex items-center gap-3 text-orange-600 animate-bounce">
-                                                <span className="text-lg font-semibold">👆 Click the word to play audio</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {currentStep === 'REPLAY' && (
-                                <div className="text-center">
-                                    <div className="flex justify-center mb-6">
-                                        <SpeakerIcon className="w-24 h-24" />
-                                    </div>
-                                    <h2 className="text-3xl font-bold text-gray-800 mb-4">Click the word to hear it again</h2>
-                                    <WordDisplay word={currentWord} onReplay={handleReplay} canReplay={!audioPlaying} />
-                                    <button
-                                        onClick={handleStepComplete}
-                                        className="mt-8 px-10 py-4 bg-blue-500 text-white rounded-2xl text-xl font-black shadow-[0_6px_0_0_rgba(59,130,246,1)] hover:shadow-[0_3px_0_0_rgba(59,130,246,1)] hover:translate-y-[3px] active:shadow-none active:translate-y-[6px] transition-all"
-                                    >
-                                        Continue to Speaking
-                                    </button>
-                                </div>
-                            )}
-
-                            {currentStep === 'SPEAK' && (
-                                <SpeechRecognition
-                                    targetWord={currentWord}
-                                    onSuccess={handleStepComplete}
-                                    onRetry={() => { }}
-                                />
-                            )}
-
-                            {currentStep === 'TRACE' && (
-                                <WordTracing word={currentWord} onComplete={handleStepComplete} />
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
         </div>
     );
 }

@@ -26,8 +26,6 @@ export function EggyModel(props: any) {
                 <meshStandardMaterial color="#FFD700" roughness={0.3} metalness={0.1} />
             </mesh>
 
-            {/* Face Area, Eyes, and Mouth removed as per user request */}
-
             {/* Antenna */}
             <group position={[0, 1.1, 0]}>
                 <mesh position={[0, 0.1, 0]}>

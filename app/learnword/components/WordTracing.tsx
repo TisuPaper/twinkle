@@ -22,7 +22,7 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
             if (ctx) {
                 setContext(ctx);
                 // Set canvas size
-                canvas.width = 600;
+                canvas.width = 400;
                 canvas.height = 200;
 
                 // Draw word outline
