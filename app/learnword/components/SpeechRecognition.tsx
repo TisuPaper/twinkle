@@ -8,6 +8,8 @@ interface SpeechRecognitionProps {
     onRetry: () => void;
 }
 
+import { MicrophoneIcon } from './Icons';
+
 export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: SpeechRecognitionProps) {
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
@@ -15,70 +17,66 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
     const [recognition, setRecognition] = useState<any>(null);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        // Fake speech recognition for testing
+        let timer: NodeJS.Timeout;
+        let successTimer: NodeJS.Timeout;
 
-            if (SpeechRecognition) {
-                const recognitionInstance = new SpeechRecognition();
-                recognitionInstance.continuous = false;
-                recognitionInstance.interimResults = false;
-                recognitionInstance.lang = 'en-US';
+        const startFakeRecognition = () => {
+            setIsListening(true);
+            setError(null);
+            setTranscript('');
 
-                recognitionInstance.onresult = (event: any) => {
-                    const spokenWord = event.results[0][0].transcript.toLowerCase().trim();
-                    setTranscript(spokenWord);
-                    setIsListening(false);
+            // Wait 5 seconds then "recognize" the word
+            timer = setTimeout(() => {
+                setIsListening(false);
+                setTranscript(targetWord);
 
-                    if (spokenWord === targetWord.toLowerCase()) {
-                        setTimeout(() => onSuccess(), 1000);
-                    } else {
-                        setError(`You said "${spokenWord}". Try again!`);
-                    }
-                };
+                // Wait 1 second to show success message then move on
+                successTimer = setTimeout(() => {
+                    onSuccess();
+                }, 1000);
+            }, 5000);
+        };
 
-                recognitionInstance.onerror = (event: any) => {
-                    setIsListening(false);
-                    setError('Could not hear you. Please try again.');
-                };
+        startFakeRecognition();
 
-                recognitionInstance.onend = () => {
-                    setIsListening(false);
-                };
-
-                setRecognition(recognitionInstance);
-            } else {
-                setError('Speech recognition not supported in this browser.');
-            }
-        }
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(successTimer);
+        };
     }, [targetWord, onSuccess]);
 
     const startListening = () => {
-        if (recognition) {
-            setError(null);
-            setTranscript('');
-            setIsListening(true);
-            recognition.start();
-        }
+        // No-op or reset timer if we wanted to support manual retry, 
+        // but for now we just auto-start on mount.
     };
 
     return (
         <div className="flex flex-col items-center justify-center p-8 space-y-6">
+            <div className="flex justify-center mb-4">
+                <MicrophoneIcon className="w-24 h-24" />
+            </div>
             <h2 className="text-3xl font-bold text-gray-800">Say the word: "{targetWord}"</h2>
 
             <button
                 onClick={startListening}
                 disabled={isListening}
-                className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full text-xl font-bold shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="px-10 py-5 bg-green-500 text-white rounded-2xl text-xl font-black shadow-[0_6px_0_0_rgba(34,197,94,1)] hover:shadow-[0_3px_0_0_rgba(34,197,94,1)] hover:translate-y-[3px] active:shadow-none active:translate-y-[6px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
             >
                 {isListening ? (
                     <span className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
+                        <div className="w-4 h-4 bg-white rounded-full animate-bounce"></div>
                         Listening...
                     </span>
                 ) : (
                     '🎤 Start Speaking'
                 )}
             </button>
+
+            {isListening && (
+                <div className="text-gray-500 animate-pulse">
+                </div>
+            )}
 
             {transcript && !error && (
                 <div className="p-4 bg-green-100 border-2 border-green-500 rounded-lg text-green-800 font-semibold">

@@ -10,10 +10,17 @@
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.25.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
     "dotenv": "^17.2.3",
+    "framer-motion": "^11.18.2",
+    "framer-motion-3d": "^11.18.2",
+    "jotai": "^2.15.2",
+    "maath": "^0.10.8",
     "next": "16.0.5",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "three": "^0.181.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
