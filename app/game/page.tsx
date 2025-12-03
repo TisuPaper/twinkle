@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useFBX, useAnimations, Text, Environment, OrbitControls } from '@react-three/drei';
+import { useFBX, useAnimations, Text, Environment, OrbitControls, Cloud, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- Constants ---
@@ -17,10 +17,12 @@ type Lane = -1 | 0 | 1; // Left, Middle, Right
 
 function Player({
     lane,
-    setZPosition
+    setZPosition,
+    active
 }: {
     lane: Lane,
-    setZPosition: (z: number) => void
+    setZPosition: (z: number) => void,
+    active: boolean
 }) {
     const group = useRef<THREE.Group>(null);
     // Load Model and Animation
@@ -44,17 +46,19 @@ function Player({
     useFrame((state, delta) => {
         if (!group.current) return;
 
-        // 1. Forward Movement (Negative Z)
-        group.current.position.z -= RUN_SPEED * delta;
-        setZPosition(group.current.position.z);
+        if (active) {
+            // 1. Forward Movement (Negative Z)
+            group.current.position.z -= RUN_SPEED * delta;
+            setZPosition(group.current.position.z);
 
-        // 2. Lateral Movement (Lerp to target lane)
-        const targetX = lane * LANE_WIDTH;
-        group.current.position.x = THREE.MathUtils.lerp(
-            group.current.position.x,
-            targetX,
-            LANE_SWITCH_SPEED * delta
-        );
+            // 2. Lateral Movement (Lerp to target lane)
+            const targetX = lane * LANE_WIDTH;
+            group.current.position.x = THREE.MathUtils.lerp(
+                group.current.position.x,
+                targetX,
+                LANE_SWITCH_SPEED * delta
+            );
+        }
 
         // 3. Camera Follow
         // Keep camera behind and slightly above player
@@ -84,20 +88,22 @@ function AnswerGate({
             {/* Gate Frame */}
             <mesh position={[0, 1.5, 0]}>
                 <boxGeometry args={[1.8, 3, 0.1]} />
-                <meshStandardMaterial color="white" transparent opacity={0.1} />
+                <meshStandardMaterial color="white" transparent opacity={0.5} />
             </mesh>
             <mesh position={[0, 1.5, 0]}>
                 <boxGeometry args={[1.9, 3.1, 0.05]} />
-                <meshStandardMaterial color={color} wireframe />
+                <meshStandardMaterial color={color} />
             </mesh>
 
             {/* Answer Text */}
             <Text
                 position={[0, 2, 0]}
                 fontSize={1}
-                color={color}
+                color="white"
                 anchorX="center"
                 anchorY="middle"
+                outlineWidth={0.05}
+                outlineColor={color}
             >
                 {text}
             </Text>
@@ -105,30 +111,107 @@ function AnswerGate({
     );
 }
 
-function Ground() {
-    // Infinite scrolling ground illusion can be done, but for now a long plane is enough
+function SimpleUmbrella({ position }: { position: [number, number, number] }) {
     return (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -500]}>
-            <planeGeometry args={[10, 1000]} />
-            <meshStandardMaterial color="#333" />
+        <group position={position} rotation={[0, Math.random() * Math.PI, 0]}>
+            {/* Pole */}
+            <mesh position={[0, 1.5, 0]} castShadow>
+                <cylinderGeometry args={[0.05, 0.05, 3]} />
+                <meshStandardMaterial color="#8B4513" />
+            </mesh>
+            {/* Top */}
+            <mesh position={[0, 2.8, 0]} castShadow>
+                <coneGeometry args={[1.5, 1, 8]} />
+                <meshStandardMaterial color="#FFD700" />
+            </mesh>
+        </group>
+    );
+}
+
+function PalmTree({ position }: { position: [number, number, number] }) {
+    return (
+        <group position={position} rotation={[0, Math.random() * Math.PI, 0]}>
+            {/* Trunk */}
+            <mesh position={[0, 2, 0]} castShadow>
+                <cylinderGeometry args={[0.3, 0.5, 4]} />
+                <meshStandardMaterial color="#8B4513" />
+            </mesh>
+            {/* Leaves */}
+            <mesh position={[0, 4, 0]} castShadow>
+                <dodecahedronGeometry args={[1.5]} />
+                <meshStandardMaterial color="#228B22" />
+            </mesh>
+        </group>
+    );
+}
+
+function Rock({ position }: { position: [number, number, number] }) {
+    const scale = 1 + Math.random();
+    return (
+        <mesh
+            position={position}
+            rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}
+            scale={[scale, scale * 0.6, scale]}
+            castShadow
+        >
+            <dodecahedronGeometry args={[0.8, 0]} />
+            <meshStandardMaterial color="#808080" roughness={0.9} />
         </mesh>
     );
 }
 
-function LaneMarkers() {
-    // Visual guides for lanes
+function BeachEnvironment() {
+    const sandTexture = useTexture('/hellokitty/sand.png');
+
+    // Configure texture repeating
+    sandTexture.wrapS = THREE.RepeatWrapping;
+    sandTexture.wrapT = THREE.RepeatWrapping;
+    sandTexture.repeat.set(1, 100); // Adjust repeat based on length
+
+    // Generate some random decorations along the track
+    const decorations = useMemo(() => {
+        const items = [];
+        for (let z = 0; z > -1000; z -= 15) {
+            // Rock Border (Left)
+            items.push(<Rock key={`rock-l-${z}`} position={[-5, 0, z + Math.random() * 5]} />);
+            // Rock Border (Right)
+            items.push(<Rock key={`rock-r-${z}`} position={[5, 0, z + Math.random() * 5]} />);
+
+            // Left side decorations (further out)
+            if (Math.random() > 0.3) {
+                const Type = Math.random() > 0.5 ? SimpleUmbrella : PalmTree;
+                items.push(<Type key={`l-${z}`} position={[-8 - Math.random() * 10, 0, z]} />);
+            }
+
+            // Right side decorations (further out)
+            if (Math.random() > 0.3) {
+                const Type = Math.random() > 0.5 ? SimpleUmbrella : PalmTree;
+                items.push(<Type key={`r-${z}`} position={[8 + Math.random() * 10, 0, z]} />);
+            }
+        }
+        return items;
+    }, []);
+
     return (
         <group>
-            {/* Left Line */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1, 0.01, -500]}>
-                <planeGeometry args={[0.1, 1000]} />
-                <meshStandardMaterial color="#666" />
+            {/* Sand Ground (Base) */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, -500]} receiveShadow>
+                <planeGeometry args={[200, 1000]} />
+                <meshStandardMaterial color="#f2d2a9" />
             </mesh>
-            {/* Right Line */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 0.01, -500]}>
-                <planeGeometry args={[0.1, 1000]} />
-                <meshStandardMaterial color="#666" />
+
+            {/* Runway with Sand Texture */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, -500]} receiveShadow>
+                <planeGeometry args={[8, 1000]} />
+                <meshStandardMaterial map={sandTexture} />
             </mesh>
+
+            {decorations}
+
+            {/* Clouds */}
+            <Cloud opacity={0.6} scale={2} position={[0, 15, -50]} speed={0.2} segments={20} />
+            <Cloud opacity={0.5} scale={3} position={[-20, 20, -100]} speed={0.1} segments={20} />
+            <Cloud opacity={0.5} scale={3} position={[20, 18, -80]} speed={0.15} segments={20} />
         </group>
     );
 }
@@ -136,7 +219,7 @@ function LaneMarkers() {
 export default function GamePage() {
     const [lane, setLane] = useState<Lane>(0);
     const [playerZ, setPlayerZ] = useState(0);
-    const [gameState, setGameState] = useState<'playing' | 'correct' | 'wrong'>('playing');
+    const [gameState, setGameState] = useState<'menu' | 'playing' | 'correct' | 'wrong'>('menu');
 
     // Quiz Configuration
     const quiz = {
@@ -182,18 +265,14 @@ export default function GamePage() {
                     setGameState('wrong');
                 }
             } else {
-                // Middle lane or empty lane - treat as miss or wrong? 
-                // Prompt didn't specify middle lane answer, but implies choice between left/right.
-                // If they stay in middle, they hit nothing. Let's assume they must pick.
-                // For now, if they miss both, maybe just nothing happens or "Wrong" if strict.
-                // Let's say "Wrong" if they don't pick the correct one.
+                // Middle lane or empty lane
                 setGameState('wrong');
             }
         }
     }, [playerZ, lane, gameState]);
 
     return (
-        <div className="w-full h-screen bg-black relative overflow-hidden">
+        <div className="w-full h-screen bg-gradient-to-b from-sky-400 to-blue-200 relative overflow-hidden">
             {/* UI Overlay */}
             <div className="absolute top-0 left-0 w-full p-8 z-10 flex flex-col items-center pointer-events-none">
                 <div className="bg-white/90 backdrop-blur px-8 py-4 rounded-2xl shadow-xl">
@@ -202,8 +281,23 @@ export default function GamePage() {
                 </div>
             </div>
 
+            {/* Start Screen */}
+            {gameState === 'menu' && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="text-center">
+                        <h1 className="text-6xl font-black text-white mb-6 drop-shadow-lg tracking-wider">MATH RUNNER</h1>
+                        <button
+                            className="px-10 py-4 bg-yellow-400 text-black text-2xl font-black rounded-full hover:scale-110 hover:bg-yellow-300 transition-all shadow-[0_0_30px_rgba(250,204,21,0.6)]"
+                            onClick={() => setGameState('playing')}
+                        >
+                            START GAME
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Feedback Overlay */}
-            {gameState !== 'playing' && (
+            {(gameState === 'correct' || gameState === 'wrong') && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                     <div className={`transform transition-all scale-110 px-12 py-8 rounded-3xl shadow-2xl text-center ${gameState === 'correct' ? 'bg-green-500' : 'bg-red-500'
                         }`}>
@@ -228,24 +322,23 @@ export default function GamePage() {
 
             {/* Controls Hint */}
             <div className="absolute bottom-8 left-0 w-full text-center z-10 pointer-events-none">
-                <p className="text-white/50 text-sm font-mono">Press 'A' to move Left • Press 'D' to move Right</p>
+                <p className="text-white/80 text-sm font-mono font-bold drop-shadow-md">Press 'A' to move Left • Press 'D' to move Right</p>
             </div>
 
             {/* 3D Scene */}
             <Canvas shadows camera={{ position: [0, 5, 10], fov: 50 }}>
-                <ambientLight intensity={0.5} />
+                <ambientLight intensity={0.8} />
                 <directionalLight
-                    position={[10, 20, 10]}
-                    intensity={1}
+                    position={[50, 50, 25]}
+                    intensity={1.5}
                     castShadow
-                    shadow-mapSize={[1024, 1024]}
+                    shadow-mapSize={[2048, 2048]}
                 />
-                <Environment preset="city" />
+                <Environment preset="sunset" />
 
-                <Player lane={lane} setZPosition={setPlayerZ} />
+                <Player lane={lane} setZPosition={setPlayerZ} active={gameState === 'playing'} />
 
-                <Ground />
-                <LaneMarkers />
+                <BeachEnvironment />
 
                 {/* Render Answer Gates */}
                 {quiz.answers.map((ans, i) => (
@@ -257,7 +350,7 @@ export default function GamePage() {
                     />
                 ))}
 
-                <fog attach="fog" args={['#111', 10, 100]} />
+                <fog attach="fog" args={['#87CEEB', 20, 100]} />
             </Canvas>
         </div>
     );
