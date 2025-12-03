@@ -281,45 +281,6 @@ export default function GamePage() {
                 </div>
             </div>
 
-            {/* Start Screen */}
-            {gameState === 'menu' && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="text-center">
-                        <h1 className="text-6xl font-black text-white mb-6 drop-shadow-lg tracking-wider">MATH RUNNER</h1>
-                        <button
-                            className="px-10 py-4 bg-yellow-400 text-black text-2xl font-black rounded-full hover:scale-110 hover:bg-yellow-300 transition-all shadow-[0_0_30px_rgba(250,204,21,0.6)]"
-                            onClick={() => setGameState('playing')}
-                        >
-                            START GAME
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Feedback Overlay */}
-            {(gameState === 'correct' || gameState === 'wrong') && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <div className={`transform transition-all scale-110 px-12 py-8 rounded-3xl shadow-2xl text-center ${gameState === 'correct' ? 'bg-green-500' : 'bg-red-500'
-                        }`}>
-                        <h2 className="text-6xl font-black text-white mb-2">
-                            {gameState === 'correct' ? 'CORRECT!' : 'WRONG!'}
-                        </h2>
-                        <p className="text-white/90 text-xl font-medium">
-                            {gameState === 'correct' ? 'Great job!' : 'Try again next time.'}
-                        </p>
-                        <button
-                            className="mt-6 px-6 py-2 bg-white text-black rounded-full font-bold pointer-events-auto hover:scale-105 transition"
-                            onClick={() => {
-                                // Simple reset logic: reload page or reset state
-                                window.location.reload();
-                            }}
-                        >
-                            Play Again
-                        </button>
-                    </div>
-                </div>
-            )}
-
             {/* Controls Hint */}
             <div className="absolute bottom-8 left-0 w-full text-center z-10 pointer-events-none">
                 <p className="text-white/80 text-sm font-mono font-bold drop-shadow-md">Press 'A' to move Left • Press 'D' to move Right</p>
