@@ -7,6 +7,8 @@ interface WordTracingProps {
     onComplete: () => void;
 }
 
+import { PencilIcon } from './Icons';
+
 export default function WordTracing({ word, onComplete }: WordTracingProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -20,7 +22,7 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
             if (ctx) {
                 setContext(ctx);
                 // Set canvas size
-                canvas.width = 600;
+                canvas.width = 400;
                 canvas.height = 200;
 
                 // Draw word outline
@@ -108,7 +110,10 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
     const progress = Math.min((strokes / requiredStrokes) * 100, 100);
 
     return (
-        <div className="flex flex-col items-center justify-center p-8 space-y-6">
+        <div className="flex flex-col items-center justify-center p-0 space-y-4">
+            <div className="flex justify-center mb-2">
+                <PencilIcon className="w-24 h-24" />
+            </div>
             <h2 className="text-3xl font-bold text-gray-800">Trace the word: "{word}"</h2>
 
             <div className="relative">
@@ -121,18 +126,18 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
-                    className="border-4 border-purple-300 rounded-lg bg-white cursor-crosshair shadow-lg"
+                    className="border-4 border-white rounded-3xl bg-white/50 cursor-crosshair shadow-[0_8px_32px_0_rgba(31,38,135,0.1)]"
                 />
             </div>
 
             <div className="w-full max-w-md">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <div className="flex justify-between text-sm text-gray-500 font-bold mb-2">
                     <span>Progress</span>
                     <span>{Math.round(progress)}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div className="w-full bg-white/50 rounded-full h-6 overflow-hidden border-2 border-white shadow-inner">
                     <div
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
+                        className="bg-purple-400 h-full transition-all duration-300 rounded-full"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
@@ -141,14 +146,14 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
             <div className="flex gap-4">
                 <button
                     onClick={clearCanvas}
-                    className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                    className="px-8 py-4 bg-gray-200 text-gray-600 rounded-2xl font-black shadow-[0_4px_0_0_rgba(156,163,175,1)] hover:shadow-[0_2px_0_0_rgba(156,163,175,1)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px] transition-all"
                 >
                     Clear
                 </button>
                 <button
                     onClick={onComplete}
                     disabled={progress < 100}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    className="px-8 py-4 bg-purple-500 text-white rounded-2xl font-black shadow-[0_4px_0_0_rgba(168,85,247,1)] hover:shadow-[0_2px_0_0_rgba(168,85,247,1)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                 >
                     Complete
                 </button>

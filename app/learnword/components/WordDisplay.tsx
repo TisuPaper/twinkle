@@ -14,7 +14,7 @@ export default function WordDisplay({ word, onReplay, canReplay }: WordDisplayPr
                 disabled={!canReplay}
                 className="group relative"
             >
-                <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                <div className="text-9xl font-black text-purple-500 hover:text-purple-600 transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none drop-shadow-sm">
                     {word}
                 </div>
                 {canReplay && (

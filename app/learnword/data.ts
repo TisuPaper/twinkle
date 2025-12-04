@@ -4,8 +4,8 @@ import { LearnWordData } from './processor';
 export const mockAIResult: LearnWordData = {
     ageLevel: '4-5',
     difficulty: {
-        easy: ['cat', 'dog'],
-        medium: ['jump', 'happy'],
-        hard: ['cook', 'garden']
+        easy: [],
+        medium: ['jump'],
+        hard: []
     }
 };
