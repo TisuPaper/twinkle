@@ -32,7 +32,7 @@ export const BookScene = ({ pages = [], flippedIndex = 0 }: BookSceneProps) => {
 
     return (
         <>
-            <group ref={group} position-z={0} rotation-x={-Math.PI / 4} scale={[0.35, 0.35, 0.35]}>
+            <group ref={group} position-z={0} rotation-x={-Math.PI / 4} scale={[0.3, 0.3, 0.3]}>
                 <Book3D pages={pages} flippedIndex={flippedIndex} />
             </group>
 

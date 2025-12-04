@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Button from './Button';
 
 interface SpeechRecognitionProps {
     targetWord: string;
@@ -16,39 +17,24 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
     const [error, setError] = useState<string | null>(null);
     const [recognition, setRecognition] = useState<any>(null);
 
+    // Removed fake recognition logic
     useEffect(() => {
-        // Fake speech recognition for testing
-        let timer: NodeJS.Timeout;
-        let successTimer: NodeJS.Timeout;
-
-        const startFakeRecognition = () => {
-            setIsListening(true);
-            setError(null);
-            setTranscript('');
-
-            // Wait 5 seconds then "recognize" the word
-            timer = setTimeout(() => {
-                setIsListening(false);
-                setTranscript(targetWord);
-
-                // Wait 1 second to show success message then move on
-                successTimer = setTimeout(() => {
-                    onSuccess();
-                }, 1000);
-            }, 5000);
-        };
-
-        startFakeRecognition();
-
-        return () => {
-            clearTimeout(timer);
-            clearTimeout(successTimer);
-        };
-    }, [targetWord, onSuccess]);
+        // Cleanup if needed
+        return () => { };
+    }, []);
 
     const startListening = () => {
-        // No-op or reset timer if we wanted to support manual retry, 
-        // but for now we just auto-start on mount.
+        setIsListening(true);
+        setError(null);
+        setTranscript('');
+
+        // Simulate listening delay
+        setTimeout(() => {
+            setIsListening(false);
+            setTranscript(targetWord);
+            // We do NOT call onSuccess() here to avoid auto-flip.
+            // The user sees the success message and manually navigates.
+        }, 2000);
     };
 
     return (
@@ -58,20 +44,20 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
             </div>
             <h2 className="text-3xl font-bold text-gray-800">Say the word: "{targetWord}"</h2>
 
-            <button
+            <Button
                 onClick={startListening}
                 disabled={isListening}
-                className="px-10 py-5 bg-green-500 text-white rounded-2xl text-xl font-black shadow-[0_6px_0_0_rgba(34,197,94,1)] hover:shadow-[0_3px_0_0_rgba(34,197,94,1)] hover:translate-y-[3px] active:shadow-none active:translate-y-[6px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                style={{ opacity: isListening ? 0.5 : 1 }}
             >
                 {isListening ? (
                     <span className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-white rounded-full animate-bounce"></div>
+                        <div className="w-4 h-4 bg-gray-600 rounded-full animate-bounce"></div>
                         Listening...
                     </span>
                 ) : (
                     '🎤 Start Speaking'
                 )}
-            </button>
+            </Button>
 
             {isListening && (
                 <div className="text-gray-500 animate-pulse">
@@ -87,12 +73,9 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
             {error && (
                 <div className="p-4 bg-red-100 border-2 border-red-500 rounded-lg text-red-800">
                     <p className="font-semibold">{error}</p>
-                    <button
-                        onClick={startListening}
-                        className="mt-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    >
+                    <Button onClick={startListening} variant="secondary" style={{ marginTop: '0.5rem', fontSize: '1rem' }}>
                         Try Again
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>

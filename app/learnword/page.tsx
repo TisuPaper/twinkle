@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import { validateLearnWordData, processToChapters } from './processor';
 import { mockAIResult } from './data';
 import { LearningStep, LearningState } from './types';
-import ProgressBar from './components/ProgressBar';
 import WordDisplay from './components/WordDisplay';
 import SpeechRecognition from './components/SpeechRecognition';
 import WordTracing from './components/WordTracing';
@@ -67,7 +66,16 @@ export default function LearnWordPage() {
     // Auto-play audio when entering SHOW step
     useEffect(() => {
         if (currentStep === 'SHOW' && state && !audioPlaying) {
-            playAudio(getCurrentWord());
+            // Wait 1 second before attempting to play audio
+            const timer = setTimeout(() => {
+                // Try to play audio, if blocked due to autoplay policy, mark as blocked
+                playAudio(getCurrentWord(), true).catch((err) => {
+                    console.log('Auto-play blocked, waiting for user interaction', err);
+                    // The audioBlocked state is already set in playAudio's catch block
+                });
+            }, 1000);
+
+            return () => clearTimeout(timer);
         }
     }, [currentStep, state]);
 
@@ -77,24 +85,18 @@ export default function LearnWordPage() {
         return level?.words[level.currentWordIndex]?.word || '';
     };
 
-    const playAudio = async (word: string) => {
+    const playAudio = async (word: string, isFirstPlay: boolean = false) => {
         setAudioPlaying(true);
         setAudioBlocked(false);
         try {
-            const response = await fetch('/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: word }),
-            });
+            // Use different audio files based on whether this is first play or replay
+            const audioPath = isFirstPlay
+                ? '/audios/voice_preview_jump.mp3'
+                : '/audios/jump.MP3';
 
-            if (!response.ok) throw new Error('Failed to generate audio');
-
-            const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
+            const audio = new Audio(audioPath);
 
             audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
                 setAudioPlaying(false);
                 // Auto-advance to REPLAY step after audio finishes
                 if (currentStep === 'SHOW') {
@@ -119,7 +121,7 @@ export default function LearnWordPage() {
 
 
     const handleReplay = () => {
-        playAudio(getCurrentWord());
+        playAudio(getCurrentWord(), false); // Replay uses regular audio
     };
 
     const handleStepComplete = () => {
@@ -205,99 +207,156 @@ export default function LearnWordPage() {
 
     const currentWord = getCurrentWord();
 
+    // Calculate flipped index based on current word and step
+    let stepOffset = 0;
+    if (currentStep === 'SPEAK') stepOffset = 1;
+    if (currentStep === 'TRACE') stepOffset = 2;
+
+    const currentWordIndex = state.levels[state.currentLevelIndex].currentWordIndex;
+    const flippedIndex = (currentWordIndex * 3) + stepOffset;
+
     // --- Page Generation ---
-    const pages = state.levels[state.currentLevelIndex].words.map((wordData, index) => {
-        const isCurrentWord = index === state.levels[state.currentLevelIndex].currentWordIndex;
+    const pages = state.levels[state.currentLevelIndex].words.flatMap((wordData, wordIndex) => {
+        const isCurrentWord = wordIndex === state.levels[state.currentLevelIndex].currentWordIndex;
 
-        // We only render the interactive content if it's the current word.
-        // For other words, we could render a static snapshot or just the word text.
-        // For simplicity, we'll render the full component but it might only be interactive when active.
-        // Actually, since we are flipping, the "active" page is the one visible.
-
-        return {
-            left: (
-                <group position={[0, 0, 1.0]} rotation={[0, 0, 0]} scale={0.8}>
-                    <EggyModel />
-                </group>
-            ),
-            right: (
-                <div className="w-full h-full p-8 flex flex-col justify-center">
-                    <ProgressBar
-                        level={state.levels[state.currentLevelIndex].level}
-                        chapterNumber={state.currentLevelIndex + 1}
-                        wordIndex={index}
-                        totalWords={state.levels[state.currentLevelIndex].words.length}
-                        currentStep={isCurrentWord ? currentStep : 'SHOW'}
-                        currentWord={wordData.word}
-                    />
-
-                    <div className="mt-6 flex-1 flex flex-col justify-center">
-                        {isCurrentWord ? (
-                            <>
-                                {currentStep === 'SHOW' && (
-                                    <div className="text-center">
-                                        <div className="flex justify-center mb-6">
-                                            <SpeakerIcon className="w-24 h-24" />
-                                        </div>
-                                        <h2 className="text-3xl font-bold text-gray-800 mb-4">Listen to the word</h2>
-                                        <WordDisplay word={wordData.word} onReplay={handleReplay} canReplay={audioBlocked} />
-                                        {audioPlaying && (
-                                            <div className="mt-8 flex justify-center">
-                                                <div className="flex items-center gap-3 text-purple-600">
-                                                    <div className="w-4 h-4 bg-purple-600 rounded-full animate-pulse"></div>
-                                                    <span className="text-xl font-semibold">Playing audio...</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {audioBlocked && !audioPlaying && (
-                                            <div className="mt-8 flex justify-center">
-                                                <div className="flex items-center gap-3 text-orange-600 animate-bounce">
-                                                    <span className="text-lg font-semibold">👆 Click the word to play audio</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {currentStep === 'REPLAY' && (
-                                    <div className="text-center">
-                                        <div className="flex justify-center mb-6">
-                                            <SpeakerIcon className="w-24 h-24" />
-                                        </div>
-                                        <h2 className="text-3xl font-bold text-gray-800 mb-4">Click the word to hear it again</h2>
-                                        <WordDisplay word={wordData.word} onReplay={handleReplay} canReplay={!audioPlaying} />
-                                        <button
-                                            onClick={handleStepComplete}
-                                            className="mt-8 px-10 py-4 bg-blue-500 text-white rounded-2xl text-xl font-black shadow-[0_6px_0_0_rgba(59,130,246,1)] hover:shadow-[0_3px_0_0_rgba(59,130,246,1)] hover:translate-y-[3px] active:shadow-none active:translate-y-[6px] transition-all"
-                                        >
-                                            Continue to Speaking
-                                        </button>
-                                    </div>
-                                )}
-
-                                {currentStep === 'SPEAK' && (
-                                    <SpeechRecognition
-                                        targetWord={wordData.word}
-                                        onSuccess={handleStepComplete}
-                                        onRetry={() => { }}
-                                    />
-                                )}
-
-                                {currentStep === 'TRACE' && (
-                                    <WordTracing word={wordData.word} onComplete={handleStepComplete} />
-                                )}
-                            </>
-                        ) : (
-                            // Placeholder for non-active words (or completed words)
-                            <div className="text-center opacity-50">
-                                <h2 className="text-3xl font-bold text-gray-800 mb-4">{wordData.word}</h2>
-                            </div>
-                        )}
-                    </div>
+        // Helper to render common right-side layout
+        const renderRightPage = (content: React.ReactNode, step: LearningStep) => (
+            <div className="w-full h-full p-8 flex flex-col justify-center bg-white/50 rounded-l-lg relative group">
+                <div className="flex-1 flex flex-col justify-center">
+                    {content}
                 </div>
-            )
-        };
+
+                {/* Manual Navigation Arrow */}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleStepComplete();
+                    }}
+                    className="absolute bottom-4 right-4 p-3 text-gray-400 hover:text-purple-600 hover:bg-purple-100 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    title="Next Page"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                </button>
+            </div>
+        );
+
+        // Page 1: Listen (SHOW/REPLAY)
+        const listenContent = (
+            <div className="text-center">
+                <div className="flex justify-center mb-6">
+                    <SpeakerIcon className="w-24 h-24" />
+                </div>
+                <h2 className="text-3xl font-bold text-gray-800">Listen to the word</h2>
+                <WordDisplay
+                    word={wordData.word}
+                    onReplay={handleReplay}
+                    canReplay={isCurrentWord ? (currentStep === 'REPLAY' ? !audioPlaying : audioBlocked) : false}
+                />
+
+                {isCurrentWord && currentStep === 'SHOW' && audioPlaying && (
+                    <div className="mt-8 flex justify-center">
+                        <div className="flex items-center gap-3 text-purple-600">
+                            <div className="w-4 h-4 bg-purple-600 rounded-full animate-pulse"></div>
+                            <span className="text-xl font-semibold">Playing audio...</span>
+                        </div>
+                    </div>
+                )}
+
+                {isCurrentWord && currentStep === 'SHOW' && audioBlocked && !audioPlaying && (
+                    <div className="mt-8 flex justify-center">
+                        <div className="flex items-center gap-3 text-orange-600 animate-bounce">
+                            <span className="text-lg font-semibold">👆 Click the word to play audio</span>
+                        </div>
+                    </div>
+                )}
+
+                {isCurrentWord && currentStep === 'REPLAY' && (
+                    <>
+                    </>
+                )}
+            </div>
+        );
+
+        // Page 2: Speak
+        const speakContent = (
+            <div className="text-center">
+                <SpeechRecognition
+                    targetWord={wordData.word}
+                    onSuccess={isCurrentWord ? handleStepComplete : () => { }}
+                    onRetry={() => { }}
+                />
+            </div>
+        );
+
+        // Page 3: Trace
+        const traceContent = (
+            <div className="text-center">
+                <WordTracing
+                    word={wordData.word}
+                    onComplete={isCurrentWord ? handleStepComplete : () => { }}
+                />
+            </div>
+        );
+
+        // Calculate the global index for these pages
+        const baseIndex = wordIndex * 4; // Now 4 pages per word
+
+        return [
+            {
+                left: (
+                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
+                        {baseIndex === flippedIndex && <EggyModel autoJump={wordIndex === 0 && currentStep === 'SHOW'} />}
+                    </group>
+                ),
+                right: renderRightPage(listenContent, currentStep === 'REPLAY' ? 'REPLAY' : 'SHOW')
+            },
+            {
+                left: (
+                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
+                        {(baseIndex + 1) === flippedIndex && <EggyModel />}
+                    </group>
+                ),
+                right: renderRightPage(speakContent, 'SPEAK')
+            },
+            {
+                left: (
+                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
+                        {(baseIndex + 2) === flippedIndex && <EggyModel />}
+                    </group>
+                ),
+                right: renderRightPage(traceContent, 'TRACE')
+            },
+            // Blank Page
+            {
+                left: (
+                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
+                        {(baseIndex + 3) === flippedIndex && <EggyModel />}
+                    </group>
+                ),
+                right: (
+                    <div className="w-full h-full p-8 flex flex-col justify-center bg-white/50 rounded-l-lg relative group">
+                        {/* Manual Navigation Arrow for the blank page */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleStepComplete();
+                            }}
+                            className="absolute bottom-4 right-4 p-3 text-gray-400 hover:text-purple-600 hover:bg-purple-100 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                            title="Next Page"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </button>
+                    </div>
+                )
+            }
+        ];
     });
+
+
 
     return (
         <div className="min-h-screen bg-[#F5F5DC] flex items-center justify-center p-4 font-sans relative overflow-hidden">
@@ -311,7 +370,7 @@ export default function LearnWordPage() {
                         <Suspense fallback={null}>
                             <BookScene
                                 pages={pages}
-                                flippedIndex={state.levels[state.currentLevelIndex].currentWordIndex}
+                                flippedIndex={flippedIndex}
                             />
                         </Suspense>
                     </group>

@@ -1,25 +1,85 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 
-export function EggyModel(props: any) {
+interface EggyModelProps {
+    autoJump?: boolean;
+    [key: string]: any;
+}
+
+export function EggyModel({ autoJump = false, ...props }: EggyModelProps) {
     const group = useRef<THREE.Group>(null);
+    const [isJumping, setIsJumping] = useState(false);
+    const [jumpProgress, setJumpProgress] = useState(0);
+
+    // Auto-jump when component mounts if autoJump is true
+    useEffect(() => {
+        if (autoJump && !isJumping) {
+            const timer = setTimeout(() => {
+                setIsJumping(true);
+                setJumpProgress(0);
+
+                // Play audio
+                const audio = new Audio('/audios/jump.MP3');
+                audio.play().catch((err) => console.error('Error playing audio:', err));
+            }, 1000); // Match the 1 second delay from the word audio
+
+            return () => clearTimeout(timer);
+        }
+    }, [autoJump]);
 
     // Idle animation
-    useFrame((state) => {
+    useFrame((state, delta) => {
         if (group.current) {
-            // Gentle floating
-            group.current.position.y = Math.sin(state.clock.elapsedTime * 1.5) * 0.1;
+            if (isJumping) {
+                // Jump animation
+                setJumpProgress((prev) => {
+                    const newProgress = prev + delta * 3; // Jump speed
+                    if (newProgress >= 1) {
+                        setIsJumping(false);
+                        return 0;
+                    }
+                    return newProgress;
+                });
+
+                // Parabolic jump (arc motion)
+                const jumpHeight = 1.5;
+                const arc = 4 * jumpProgress * (1 - jumpProgress); // Parabola
+                group.current.position.y = arc * jumpHeight;
+            } else {
+                // Gentle floating when idle
+                group.current.position.y = Math.sin(state.clock.elapsedTime * 1.5) * 0.1;
+            }
+
             // Gentle rotation
             group.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
         }
     });
 
+    const handleClick = (e: any) => {
+        e.stopPropagation();
+
+        // Start jump animation
+        setIsJumping(true);
+        setJumpProgress(0);
+
+        // Play audio
+        const audio = new Audio('/audios/jump.MP3');
+        audio.play().catch((err) => console.error('Error playing audio:', err));
+    };
+
     return (
-        <group ref={group} {...props} dispose={null}>
+        <group
+            ref={group}
+            {...props}
+            dispose={null}
+            onClick={handleClick}
+            onPointerOver={() => document.body.style.cursor = 'pointer'}
+            onPointerOut={() => document.body.style.cursor = 'default'}
+        >
             {/* Body - Yellow Sphere */}
             <mesh position={[0, 0, 0]}>
                 <sphereGeometry args={[1.2, 32, 32]} />
