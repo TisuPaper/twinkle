@@ -167,15 +167,20 @@ const PanoBackground = ({ url }: { url: string }) => {
 // --- 5. THE SCENE ---
 interface SceneProps {
     start: boolean; // ADDED: Prop to synchronize R3F animations
+    onStartJourney?: () => void; // Callback when Start Journey is clicked
 }
 
-const ThreeScene: React.FC<SceneProps> = ({ start }) => {
+const ThreeScene: React.FC<SceneProps> = ({ start, onStartJourney }) => {
     // Configuration for the sequence
     const SEQUENCE_DELAY = 1; // Time to wait before Top Text & Button appear
     const router = useRouter();
 
     const handleStartJourney = () => {
+        if (onStartJourney) {
+            onStartJourney();
+        } else {
         router.push('/experience');
+        }
     };
 
     return (
