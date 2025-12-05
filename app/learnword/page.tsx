@@ -11,8 +11,9 @@ import WordDisplay from './components/WordDisplay';
 import SpeechRecognition from './components/SpeechRecognition';
 import WordTracing from './components/WordTracing';
 import { SpeakerIcon } from './components/Icons';
-import { EggyModel } from './components/Eggy3D';
+import { HelloKittyModel } from './components/HelloKitty3D';
 import { BookScene } from './components/BookScene';
+import { BookPageLayout } from './components/BookPageLayout';
 
 
 export default function LearnWordPage() {
@@ -21,9 +22,12 @@ export default function LearnWordPage() {
     const [currentStep, setCurrentStep] = useState<LearningStep>('SHOW');
     const [error, setError] = useState<string | null>(null);
     const [audioPlaying, setAudioPlaying] = useState(false);
-    const [hasStarted, setHasStarted] = useState(false);
     const [showUI, setShowUI] = useState(false);
     const [audioBlocked, setAudioBlocked] = useState(false);
+    const [audioPlayCount, setAudioPlayCount] = useState(0);
+    const [isSpeakingFeedback, setIsSpeakingFeedback] = useState(false);
+    const [feedbackText, setFeedbackText] = useState("");
+    const [isLevelComplete, setIsLevelComplete] = useState(false);
 
 
     // Initialize state from mock data
@@ -67,6 +71,9 @@ export default function LearnWordPage() {
     // Auto-play audio when entering SHOW step
     useEffect(() => {
         if (currentStep === 'SHOW' && state && !audioPlaying) {
+            // Reset play count when entering SHOW step
+            setAudioPlayCount(0);
+
             // Wait 1 second before attempting to play audio
             const timer = setTimeout(() => {
                 // Try to play audio, if blocked due to autoplay policy, mark as blocked
@@ -74,11 +81,11 @@ export default function LearnWordPage() {
                     console.log('Auto-play blocked, waiting for user interaction', err);
                     // The audioBlocked state is already set in playAudio's catch block
                 });
-            }, 1000);
+            }, 4000);
 
             return () => clearTimeout(timer);
         }
-    }, [currentStep, state, hasStarted]);
+    }, [currentStep, state]);
 
     const getCurrentLevel = () => state?.levels[state.currentLevelIndex];
     const getCurrentWord = () => {
@@ -86,22 +93,92 @@ export default function LearnWordPage() {
         return level?.words[level.currentWordIndex]?.word || '';
     };
 
+    const playFeedback = async (text: string) => {
+        try {
+            setIsSpeakingFeedback(true);
+            setFeedbackText(text);
+
+            const response = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
+
+            if (!response.ok) throw new Error('Failed to generate audio');
+
+            const blob = await response.blob();
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+
+            audio.onended = () => {
+                setIsSpeakingFeedback(false);
+                URL.revokeObjectURL(audioUrl);
+            };
+
+            audio.onerror = () => {
+                console.error('Error playing feedback audio');
+                setIsSpeakingFeedback(false);
+                URL.revokeObjectURL(audioUrl);
+            };
+
+            await audio.play();
+        } catch (error) {
+            console.error('Error playing feedback:', error);
+            setIsSpeakingFeedback(false);
+        }
+    };
+
+    const [jumpTrigger, setJumpTrigger] = useState(0);
+
     const playAudio = async (word: string, isFirstPlay: boolean = false) => {
         setAudioPlaying(true);
         setAudioBlocked(false);
         try {
-            // Use different audio files based on whether this is first play or replay
-            const audioPath = isFirstPlay
-                ? '/audios/voice_preview_jump.mp3'
-                : '/audios/jump.MP3';
+            let audio: HTMLAudioElement;
 
-            const audio = new Audio(audioPath);
+            if (word.toLowerCase() === 'jump') {
+                // Use local file for "jump"
+                audio = new Audio('/audios/jump.MP3');
+                // Trigger jump animation
+                setJumpTrigger(Date.now());
+            } else {
+                // Use API for other words
+                const response = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: word }),
+                });
+
+                if (!response.ok) throw new Error('Failed to generate audio');
+
+                const blob = await response.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                audio = new Audio(audioUrl);
+
+                // Cleanup blob url after playing
+                const originalOnEnded = audio.onended;
+                audio.onended = (ev) => {
+                    URL.revokeObjectURL(audioUrl);
+                    if (originalOnEnded) originalOnEnded.call(audio, ev);
+                };
+            }
 
             audio.onended = () => {
                 setAudioPlaying(false);
-                // Auto-advance to REPLAY step after audio finishes
+                // If it was a blob URL, it's revoked in the specific handler above or we can do it here if we saved the url
+
+                // Increment play count
+                const newCount = audioPlayCount + 1;
+                setAudioPlayCount(newCount);
+
+                // Auto-advance logic
                 if (currentStep === 'SHOW') {
                     setCurrentStep('REPLAY');
+                } else if (currentStep === 'REPLAY') {
+                    // If we've played 2 times (1 initial + 1 replay), auto-advance
+                    if (newCount >= 2) {
+                        handleStepComplete();
+                    }
                 }
             };
 
@@ -127,11 +204,15 @@ export default function LearnWordPage() {
 
     const handleStepComplete = () => {
         if (currentStep === 'REPLAY') {
+            playFeedback("Wow you did it well! Now let’s try to speak");
             setCurrentStep('SPEAK');
         } else if (currentStep === 'SPEAK') {
+            playFeedback("Perfect! Now let’s try write it out");
             setCurrentStep('TRACE');
         } else if (currentStep === 'TRACE') {
-            advanceToNextWord();
+            // Always trigger Level Complete when tracing is done for this demo
+            setIsLevelComplete(true);
+            playFeedback("Congratulations! You completed the first level!");
         }
     };
 
@@ -185,45 +266,10 @@ export default function LearnWordPage() {
 
 
 
-    if (state.allCompleted) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-green-500">
-                <div className="text-center p-12 bg-white rounded-3xl shadow-2xl">
-                    <div className="text-8xl mb-6">🎉</div>
-                    <h1 className="text-5xl font-bold text-gray-800 mb-4">Congratulations!</h1>
-                    <p className="text-2xl text-gray-600 mb-8">You completed all levels!</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="px-8 py-4 bg-purple-500 text-white rounded-full text-xl font-bold shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                        Start Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
+
 
     const currentLevel = getCurrentLevel();
     if (!currentLevel) return null;
-
-    if (!hasStarted) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-red-500">
-                <div className="text-center p-12 bg-white rounded-3xl shadow-2xl max-w-lg mx-4">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-6">Ready to Learn?</h1>
-                    <p className="text-xl text-gray-600 mb-8">
-                        We'll show you words and help you learn them step by step.
-                    </p>
-                    <button
-                        onClick={() => setHasStarted(true)}
-                        className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-full text-xl font-bold shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                        Start Learning
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     const currentWord = getCurrentWord();
 
@@ -240,26 +286,12 @@ export default function LearnWordPage() {
         const isCurrentWord = wordIndex === state.levels[state.currentLevelIndex].currentWordIndex;
 
         // Helper to render common right-side layout
-        const renderRightPage = (content: React.ReactNode, step: LearningStep) => (
-            <div className="w-full h-full p-8 flex flex-col justify-center bg-white/50 rounded-l-lg relative group">
-                <div className="flex-1 flex flex-col justify-center">
+        const renderRightPage = (content: React.ReactNode, step: LearningStep, pageNum: number) => (
+            <BookPageLayout pageNumber={pageNum}>
+                <div className="w-full h-full flex flex-col justify-center">
                     {content}
                 </div>
-
-                {/* Manual Navigation Arrow */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleStepComplete();
-                    }}
-                    className="absolute bottom-4 right-4 p-3 text-gray-400 hover:text-purple-600 hover:bg-purple-100 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                    title="Next Page"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
-                </button>
-            </div>
+            </BookPageLayout>
         );
 
         // Page 1: Listen (SHOW/REPLAY)
@@ -323,54 +355,82 @@ export default function LearnWordPage() {
         // Calculate the global index for these pages
         const baseIndex = wordIndex * 4; // Now 4 pages per word
 
+        // Determine speech bubble props
+        const isTalking = (isCurrentWord && audioPlaying) || isSpeakingFeedback;
+        const speechText = isSpeakingFeedback ? feedbackText : wordData.word;
+
         return [
             {
                 left: (
-                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
-                        {baseIndex === flippedIndex && <EggyModel autoJump={wordIndex === 0 && currentStep === 'SHOW'} />}
+                    <group position={[0, -2, 1.2]} rotation={[0, 0.4, 0]} scale={2.5}>
+                        {baseIndex === flippedIndex && (
+                            <HelloKittyModel
+                                autoJump={wordIndex === 0 && currentStep === 'SHOW'}
+                                isTalking={isTalking}
+                                speechText={speechText}
+                                jumpTrigger={jumpTrigger}
+                            />
+                        )}
                     </group>
                 ),
-                right: renderRightPage(listenContent, currentStep === 'REPLAY' ? 'REPLAY' : 'SHOW')
+                right: renderRightPage(listenContent, currentStep === 'REPLAY' ? 'REPLAY' : 'SHOW', baseIndex + 1)
             },
             {
                 left: (
-                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
-                        {(baseIndex + 1) === flippedIndex && <EggyModel />}
+                    <group position={[0, -2, 1.2]} rotation={[0, 0.4, 0]} scale={2.5}>
+                        {(baseIndex + 1) === flippedIndex && (
+                            <HelloKittyModel
+                                isTalking={isTalking}
+                                speechText={speechText}
+                            />
+                        )}
                     </group>
                 ),
-                right: renderRightPage(speakContent, 'SPEAK')
+                right: renderRightPage(speakContent, 'SPEAK', baseIndex + 2)
             },
             {
                 left: (
-                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
-                        {(baseIndex + 2) === flippedIndex && <EggyModel />}
+                    <group position={[0, -2, 1.2]} rotation={[0, 0.4, 0]} scale={2.5}>
+                        {(baseIndex + 2) === flippedIndex && (
+                            <HelloKittyModel
+                                isTalking={isTalking}
+                                speechText={speechText}
+                            />
+                        )}
                     </group>
                 ),
-                right: renderRightPage(traceContent, 'TRACE')
+                right: renderRightPage(traceContent, 'TRACE', baseIndex + 3)
             },
             // Blank Page
             {
                 left: (
-                    <group position={[0, 0, 1.2]} rotation={[0, 0, 0]} scale={1}>
-                        {(baseIndex + 3) === flippedIndex && <EggyModel />}
+                    <group position={[0, -2, 1.2]} rotation={[0, 0.5, 0]} scale={2.5}>
+                        {(baseIndex + 3) === flippedIndex && (
+                            <HelloKittyModel
+                                isTalking={isTalking}
+                                speechText={speechText}
+                            />
+                        )}
                     </group>
                 ),
                 right: (
-                    <div className="w-full h-full p-8 flex flex-col justify-center bg-white/50 rounded-l-lg relative group">
-                        {/* Manual Navigation Arrow for the blank page */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleStepComplete();
-                            }}
-                            className="absolute bottom-4 right-4 p-3 text-gray-400 hover:text-purple-600 hover:bg-purple-100 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                            title="Next Page"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </button>
-                    </div>
+                    <BookPageLayout pageNumber={baseIndex + 4}>
+                        <div className="w-full h-full flex flex-col justify-center relative group">
+                            {/* Manual Navigation Arrow for the blank page */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStepComplete();
+                                }}
+                                className="absolute bottom-4 right-4 p-3 text-purple-600 bg-purple-100 rounded-full transition-all hover:bg-purple-200"
+                                title="Next Page"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </button>
+                        </div>
+                    </BookPageLayout>
                 )
             }
         ];
@@ -379,7 +439,12 @@ export default function LearnWordPage() {
 
 
     return (
-        <div className="min-h-screen bg-[#F5F5DC] flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden" style={{
+            backgroundImage: 'url(/bg_book_room.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        }}>
             {/* 3D Book Background */}
             <div className="fixed inset-0 z-0">
                 <Canvas shadows camera={{
@@ -390,7 +455,8 @@ export default function LearnWordPage() {
                         <Suspense fallback={null}>
                             <BookScene
                                 pages={pages}
-                                flippedIndex={flippedIndex}
+                                flippedIndex={isLevelComplete ? -1 : flippedIndex}
+                                isLevelComplete={isLevelComplete}
                             />
                         </Suspense>
                     </group>

@@ -2,18 +2,18 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Button from './Button';
+import { PencilIcon, EraserIcon, CheckIcon } from './Icons';
 
 interface WordTracingProps {
     word: string;
     onComplete: () => void;
 }
 
-import { PencilIcon } from './Icons';
-
 export default function WordTracing({ word, onComplete }: WordTracingProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [visitedCount, setVisitedCount] = useState(0);
+    const [strokes, setStrokes] = useState(0);
     const visitedCells = useRef<Set<string>>(new Set());
     const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
 
@@ -39,6 +39,7 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
         // Reset visited cells when word changes
         visitedCells.current.clear();
         setVisitedCount(0);
+        setStrokes(0);
     }, [word]);
 
     const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -137,11 +138,12 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
 
         visitedCells.current.clear();
         setVisitedCount(0);
+        setStrokes(0);
     };
 
     // Completion detection: require covering a certain number of grid cells
-    // Heuristic: ~8 cells per character (assuming 80px font size)
-    const requiredCells = Math.max(word.length * 8, 15);
+    // Heuristic: ~5 cells per character (easier)
+    const requiredCells = Math.max(word.length * 5, 10);
     const progress = Math.min((visitedCount / requiredCells) * 100, 100);
 
     return (
@@ -178,14 +180,20 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
 
             <div className="flex gap-4">
                 <Button onClick={clearCanvas} variant="secondary">
-                    Clear
+                    <div className="flex items-center gap-2">
+                        <EraserIcon className="w-5 h-5" />
+                        <span>Clear</span>
+                    </div>
                 </Button>
                 <Button
                     onClick={onComplete}
                     disabled={progress < 100}
-                    style={{ opacity: progress < 100 ? 0.5 : 1 }}
+                    style={{ opacity: 1, cursor: progress < 100 ? 'not-allowed' : 'pointer' }}
                 >
-                    Complete
+                    <div className="flex items-center gap-2">
+                        <CheckIcon className="w-5 h-5" />
+                        <span>Complete</span>
+                    </div>
                 </Button>
             </div>
         </div>

@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { easing } from "maath";
 import { useEffect, useRef, useState } from "react";
 import Book3D from "./Book3D";
+import { HelloKittyModel } from "./HelloKitty3D";
 
 interface BookSceneProps {
     pages?: {
@@ -10,9 +11,10 @@ interface BookSceneProps {
         right: React.ReactNode;
     }[];
     flippedIndex?: number;
+    isLevelComplete?: boolean;
 }
 
-export const BookScene = ({ pages = [], flippedIndex = 0 }: BookSceneProps) => {
+export const BookScene = ({ pages = [], flippedIndex = 0, isLevelComplete = false }: BookSceneProps) => {
     const group = useRef<any>(null);
     const [started, setStarted] = useState(false);
 
@@ -25,8 +27,10 @@ export const BookScene = ({ pages = [], flippedIndex = 0 }: BookSceneProps) => {
 
     useFrame((state, delta) => {
         if (group.current && started) {
-            easing.damp3(group.current.position, [0, 0, 0], 1.5, delta);
-            easing.dampE(group.current.rotation, [-Math.PI / 6, 0, 0], 1.5, delta);
+            // If level complete, move book to right, otherwise center
+            const targetPos: [number, number, number] = isLevelComplete ? [0, 0, 0] : [0, 0, 0];
+            easing.damp3(group.current.position, targetPos, 1.5, delta);
+            easing.dampE(group.current.rotation, [-Math.PI / 10, -0.1, 0], 0.2, delta);
         }
     });
 
@@ -35,6 +39,16 @@ export const BookScene = ({ pages = [], flippedIndex = 0 }: BookSceneProps) => {
             <group ref={group} position-z={0} rotation-x={-Math.PI / 4} scale={[0.3, 0.3, 0.3]}>
                 <Book3D pages={pages} flippedIndex={flippedIndex} />
             </group>
+
+            {/* Level Complete Character */}
+            {isLevelComplete && (
+                <group position={[-1, -1, 0]} rotation={[0, 0.5, 0]} scale={1}>
+                    <HelloKittyModel
+                        isTalking={true} // Talk during the congrats message
+                        speechText="Congratulations! You completed the first level!"
+                    />
+                </group>
+            )}
 
             <OrbitControls />
             <Environment preset="studio"></Environment>

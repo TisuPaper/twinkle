@@ -17,8 +17,9 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
     const [error, setError] = useState<string | null>(null);
     const [recognition, setRecognition] = useState<any>(null);
 
-    // Removed fake recognition logic
+    // Auto-start listening on mount
     useEffect(() => {
+        startListening();
         // Cleanup if needed
         return () => { };
     }, []);
@@ -28,13 +29,16 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
         setError(null);
         setTranscript('');
 
-        // Simulate listening delay
+        // Simulate listening delay - increased to 5 seconds
         setTimeout(() => {
             setIsListening(false);
             setTranscript(targetWord);
-            // We do NOT call onSuccess() here to avoid auto-flip.
-            // The user sees the success message and manually navigates.
-        }, 2000);
+
+            // Auto-success after 4 seconds (2s listening + 2s wait)
+            setTimeout(() => {
+                onSuccess();
+            }, 2000);
+        }, 9000);
     };
 
     return (
@@ -44,18 +48,18 @@ export default function SpeechRecognition({ targetWord, onSuccess, onRetry }: Sp
             </div>
             <h2 className="text-3xl font-bold text-gray-800">Say the word: "{targetWord}"</h2>
 
+            {/* Status Indicator */}
             <Button
-                onClick={startListening}
-                disabled={isListening}
-                style={{ opacity: isListening ? 0.5 : 1 }}
+                disabled={true}
+                style={{ opacity: 1, cursor: 'default' }}
             >
                 {isListening ? (
                     <span className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-gray-600 rounded-full animate-bounce"></div>
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                         Listening...
                     </span>
                 ) : (
-                    '🎤 Start Speaking'
+                    <span className="text-gray-500">Processing...</span>
                 )}
             </Button>
 
