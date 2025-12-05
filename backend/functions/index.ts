@@ -1,9 +1,7 @@
-import { learnWord } from "./learnWord";
-import { learnMath } from "./learnMath";
+import { room } from "./room";
 
-export const functions = [learnWord, learnMath];
+export const functions = [room];
 
 export const functionMap = {
-    [learnWord.name]: learnWord,
-    [learnMath.name]: learnMath,
+    [room.name]: room,
 };

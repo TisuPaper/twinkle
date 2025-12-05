@@ -85,9 +85,10 @@ interface GlyphProps {
     position: [number, number, number];
     delay: number; // Add delay prop
     start: boolean; // ADDED: Synchronization prop
+    exiting: boolean; // ADDED: Fade out
 }
 
-const ParticleGlyph: React.FC<GlyphProps> = ({ char, font, size, density, position, delay, start }) => {
+const ParticleGlyph: React.FC<GlyphProps> = ({ char, font, size, density, position, delay, start, exiting }) => {
     const { particlesGeo } = useMemo(() => {
         if (char === " ") return { particlesGeo: null };
 
@@ -137,7 +138,14 @@ const ParticleGlyph: React.FC<GlyphProps> = ({ char, font, size, density, positi
             // Only start progress after delay (relative to start time)
             const elapsed = state.clock.elapsedTime - startTime;
 
-            if (elapsed > delay) {
+            if (exiting) {
+                // Fade out logic: lerp BACK to 0
+                materialRef.current.uProgress = THREE.MathUtils.lerp(
+                    materialRef.current.uProgress,
+                    0.0,
+                    delta * 1.5
+                );
+            } else if (elapsed > delay) {
                 // Smoothly lerp uProgress from 0 to 1
                 // Speed factor: 1.5 (Adjust this number to make it faster/slower)
                 materialRef.current.uProgress = THREE.MathUtils.lerp(
@@ -175,6 +183,7 @@ interface Props {
     letterSpacing?: number;
     delay?: number; // Add delay prop
     start: boolean; // ADDED: Synchronization prop
+    exiting?: boolean; // ADDED: Fade out
 }
 
 const ParticleText: React.FC<Props> = ({
@@ -185,10 +194,12 @@ const ParticleText: React.FC<Props> = ({
     fontUrl = "/fonts/helvetiker_regular.typeface.json",
     letterSpacing = 0.05,
     delay = 0,
-    start
+    start,
+    exiting = false
 }) => {
     const isTTF = fontUrl.endsWith('.ttf');
     const loader = isTTF ? THREE.FileLoader : FontLoader;
+    // ... (rest of imports)
 
     // @ts-ignore
     const fontData = useLoader(loader, fontUrl, (loader) => {
@@ -247,6 +258,7 @@ const ParticleText: React.FC<Props> = ({
                         position={[item.posX, 0, 0]}
                         delay={delay}
                         start={start}
+                        exiting={exiting}
                     />
                 ))}
             </group>

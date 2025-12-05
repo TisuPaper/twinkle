@@ -29,7 +29,13 @@ app.post("/api/chat", async (req, res) => {
         // Standard chat completion with tools
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
-            messages: messages as ChatCompletionMessageParam[],
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a helpful and enthusiastic AI assistant. You have access to a 'room' tool that can generate rooms. If the user asks to create, generate, or make a room, use the 'room' tool."
+                },
+                ...messages
+            ] as ChatCompletionMessageParam[],
             tools: functions.map((fn): ChatCompletionTool => ({
                 type: "function",
                 function: {

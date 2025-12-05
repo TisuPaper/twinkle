@@ -274,15 +274,52 @@ export default function GamePage() {
     return (
         <div className="w-full h-screen bg-gradient-to-b from-sky-400 to-blue-200 relative overflow-hidden">
             {/* UI Overlay */}
-            <div className="absolute top-0 left-0 w-full p-8 z-10 flex flex-col items-center pointer-events-none">
-                <div className="bg-white/90 backdrop-blur px-8 py-4 rounded-2xl shadow-xl">
-                    <h1 className="text-4xl font-bold text-slate-800">Math Quiz</h1>
+            <div className="absolute top-0 left-0 w-full h-full z-10 flex flex-col items-center justify-center pointer-events-none">
+
+                {/* Quiz Header - Always Visible */}
+                <div className="absolute top-8 bg-white/90 backdrop-blur px-8 py-4 rounded-2xl shadow-xl transform transition-transform duration-500 hover:scale-105">
+                    <h1 className="text-4xl font-bold text-slate-800 text-center">Math Quiz</h1>
                     <p className="text-6xl font-black text-indigo-600 mt-2 text-center">{quiz.question}</p>
                 </div>
+
+                {/* Menu / Start Screen */}
+                {gameState === 'menu' && (
+                    <div className="pointer-events-auto bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl flex flex-col items-center space-y-6 animate-bounce-slight">
+                        <h2 className="text-2xl font-bold text-slate-700">Ready to Race?</h2>
+                        <button
+                            onClick={() => setGameState('playing')}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95"
+                        >
+                            Start Game
+                        </button>
+                    </div>
+                )}
+
+                {/* Game Over / Result Screen */}
+                {(gameState === 'correct' || gameState === 'wrong') && (
+                    <div className="pointer-events-auto bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl flex flex-col items-center space-y-6">
+                        <h2 className={`text-4xl font-black ${gameState === 'correct' ? 'text-green-500' : 'text-red-500'}`}>
+                            {gameState === 'correct' ? 'Correct!' : 'Try Again!'}
+                        </h2>
+                        <p className="text-slate-600 text-lg">
+                            {gameState === 'correct' ? 'Great job!' : 'Oops, that was the wrong answer.'}
+                        </p>
+                        <button
+                            onClick={() => {
+                                setPlayerZ(0);
+                                setLane(0);
+                                setGameState('playing');
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold py-3 px-8 rounded-full shadow-lg transition-all hover:scale-105"
+                        >
+                            Play Again
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Controls Hint */}
-            <div className="absolute bottom-8 left-0 w-full text-center z-10 pointer-events-none">
+            <div className="absolute bottom-8 left-0 w-full text-center z-10 pointer-events-none transition-opacity duration-300" style={{ opacity: gameState === 'playing' ? 1 : 0 }}>
                 <p className="text-white/80 text-sm font-mono font-bold drop-shadow-md">Press 'A' to move Left • Press 'D' to move Right</p>
             </div>
 

@@ -4,10 +4,13 @@ import React, { useState } from "react";
 import Head from "next/head";
 import ThreeScene from "../components/ThreeScene";
 import Loader from "../components/Loader";
+import ChatBox from "../components/ChatBox";
 
 const Home: React.FC = () => {
   // State to track if the preloader is finished and 3D animations should start
   const [appStarted, setAppStarted] = useState(false);
+  // State to track if chatbox should be open
+  const [isChatboxOpen, setIsChatboxOpen] = useState(false);
 
   return (
     <>
@@ -19,7 +22,7 @@ const Home: React.FC = () => {
       <div className="relative w-full h-screen overflow-hidden">
 
         {/* RENDER THE 3D SCENE, PASSING THE START SIGNAL */}
-        <ThreeScene start={appStarted} />
+        <ThreeScene start={appStarted} onStartJourney={() => setIsChatboxOpen(true)} />
 
         {/* --- LOADER --- */}
         <Loader onFinished={() => setAppStarted(true)} />
@@ -45,6 +48,9 @@ const Home: React.FC = () => {
         >
           © 2025 /
         </div>
+
+        {/* ChatBox */}
+        {appStarted && <ChatBox isOpen={isChatboxOpen} onClose={() => setIsChatboxOpen(false)} />}
 
       </div>
     </>
