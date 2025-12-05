@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
+
 export async function POST(request: NextRequest) {
     try {
         const { text } = await request.json();
@@ -29,9 +30,15 @@ export async function POST(request: NextRequest) {
         });
 
         // Convert the audio stream to a buffer
+        const reader = audio.getReader();
         const chunks: Uint8Array[] = [];
-        for await (const chunk of audio) {
-            chunks.push(chunk);
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                break;
+            }
+            chunks.push(value);
         }
 
         const buffer = Buffer.concat(chunks);

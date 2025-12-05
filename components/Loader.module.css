@@ -1,0 +1,99 @@
+/* components/Loader.module.css */
+:root {
+    /* Palette derived from source */
+    --loader-bg: #111111;
+    --loader-text: #e0e0e0;
+    --script-color: #d4a373; /* Gold/Tan accent for script */
+}
+
+.container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background-color: var(--loader-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transform: translateY(0%);
+    transition: transform 1.5s cubic-bezier(0.76, 0, 0.24, 1);
+    will-change: transform;
+}
+
+.slideUp {
+    transform: translateY(-100%);
+    pointer-events: none;
+}
+
+.inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.bigText {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(4rem, 12vw, 10rem);
+    line-height: 0.85;
+    color: var(--loader-text);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    position: relative;
+}
+
+.bigText span {
+    display: block;
+    transform: translateY(110%);
+    animation: textRise 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Delays for each line */
+.line1 span { animation-delay: 0.2s; }
+.line2 span { animation-delay: 0.4s; }
+
+.scriptText {
+    font-family: 'Pinyon Script', cursive;
+    font-size: clamp(2rem, 5vw, 4rem);
+    color: var(--script-color);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-5deg);
+    z-index: 10;
+    mix-blend-mode: exclusion;
+    opacity: 0;
+    animation: scriptFade 1s ease forwards 0.8s;
+    white-space: nowrap;
+}
+
+.loaderProgress {
+    position: absolute;
+    bottom: -60px;
+    width: 100%;
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+    overflow: hidden;
+}
+
+.loaderBar {
+    width: 0%;
+    height: 100%;
+    background: var(--script-color);
+    transition: width 0.1s linear;
+}
+
+@keyframes textRise {
+    0% { transform: translateY(110%); }
+    100% { transform: translateY(0%); }
+}
+
+@keyframes scriptFade {
+    0% { opacity: 0; transform: translate(-50%, -40%) rotate(-5deg); }
+    100% { opacity: 1; transform: translate(-50%, -50%) rotate(-5deg); }
+}

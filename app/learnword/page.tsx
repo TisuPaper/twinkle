@@ -21,6 +21,7 @@ export default function LearnWordPage() {
     const [currentStep, setCurrentStep] = useState<LearningStep>('SHOW');
     const [error, setError] = useState<string | null>(null);
     const [audioPlaying, setAudioPlaying] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
     const [showUI, setShowUI] = useState(false);
     const [audioBlocked, setAudioBlocked] = useState(false);
 
@@ -77,7 +78,7 @@ export default function LearnWordPage() {
 
             return () => clearTimeout(timer);
         }
-    }, [currentStep, state]);
+    }, [currentStep, state, hasStarted]);
 
     const getCurrentLevel = () => state?.levels[state.currentLevelIndex];
     const getCurrentWord = () => {
@@ -204,6 +205,25 @@ export default function LearnWordPage() {
 
     const currentLevel = getCurrentLevel();
     if (!currentLevel) return null;
+
+    if (!hasStarted) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-red-500">
+                <div className="text-center p-12 bg-white rounded-3xl shadow-2xl max-w-lg mx-4">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-6">Ready to Learn?</h1>
+                    <p className="text-xl text-gray-600 mb-8">
+                        We'll show you words and help you learn them step by step.
+                    </p>
+                    <button
+                        onClick={() => setHasStarted(true)}
+                        className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-full text-xl font-bold shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                        Start Learning
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const currentWord = getCurrentWord();
 
