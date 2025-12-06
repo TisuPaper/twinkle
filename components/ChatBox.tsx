@@ -319,7 +319,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose, onSubmit }) => {
                   "
                 >
                   <Image
-                    src="/button.png"
+                    src="/chatbox/button.png"
                     alt="Send"
                     width={56}
                     height={56}

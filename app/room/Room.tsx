@@ -58,30 +58,31 @@ export default function Room() {
                     console.warn("Could not load blade_blade.png");
                 }
 
-                // Bed (SVG)
-                let bed: PIXI.Sprite | null = null;
-                try {
-                    const bedTexture = await PIXI.Assets.load("/room/bed.svg");
-                    if (isMounted) {
-                        bed = new PIXI.Sprite(bedTexture);
-                        bed.anchor.set(0.5, 1); // Bottom center anchor
-                        app.stage.addChild(bed);
-                    }
-                } catch (e) {
-                    console.warn("Could not load bed.svg");
-                }
+                // Bed (SVG) - Commented out as file is missing
+                // let bed: PIXI.Sprite | null = null;
+                // try {
+                //     const bedTexture = await PIXI.Assets.load("/room/bed.svg");
+                //     if (isMounted) {
+                //         bed = new PIXI.Sprite(bedTexture);
+                //         bed.anchor.set(0.5, 1); // Bottom center anchor
+                //         app.stage.addChild(bed);
+                //     }
+                // } catch (e) {
+                //     console.warn("Could not load bed.svg");
+                // }
 
-                let plant: PIXI.Sprite | null = null;
-                try {
-                    const plantTexture = await PIXI.Assets.load("/left_plant.png");
-                    if (isMounted) {
-                        plant = new PIXI.Sprite(plantTexture);
-                        plant.anchor.set(0.5, 1);
-                        app.stage.addChild(plant);
-                    }
-                } catch (e) {
-                    // console.warn("Could not load left_plant.png");
-                }
+                // Plant - Commented out as file is missing
+                // let plant: PIXI.Sprite | null = null;
+                // try {
+                //     const plantTexture = await PIXI.Assets.load("/left_plant.png");
+                //     if (isMounted) {
+                //         plant = new PIXI.Sprite(plantTexture);
+                //         plant.anchor.set(0.5, 1);
+                //         app.stage.addChild(plant);
+                //     }
+                // } catch (e) {
+                //     // console.warn("Could not load left_plant.png");
+                // }
 
                 // Left Curtain
                 let leftCurtain: PIXI.Mesh | null = null;
@@ -243,31 +244,31 @@ export default function Room() {
                         fanBlade.scale.set(bgScale * 0.18); // Reverted size to 0.15
                     }
 
-                    if (bed) {
-                        // Position bed in the lower left area of the room
-                        const originalWidth = bgTexture.width;
-                        const originalHeight = bgTexture.height;
+                    // if (bed) {
+                    //     // Position bed in the lower left area of the room
+                    //     const originalWidth = bgTexture.width;
+                    //     const originalHeight = bgTexture.height;
 
-                        // Position bed at approximately 25% from left, 85% from top
-                        const targetX = originalWidth * 0.25;
-                        const targetY = originalHeight * 0.85;
+                    //     // Position bed at approximately 25% from left, 85% from top
+                    //     const targetX = originalWidth * 0.25;
+                    //     const targetY = originalHeight * 0.85;
 
-                        const offsetX = (targetX - originalWidth / 2) * bgScale;
-                        const offsetY = (targetY - originalHeight / 2) * bgScale;
+                    //     const offsetX = (targetX - originalWidth / 2) * bgScale;
+                    //     const offsetY = (targetY - originalHeight / 2) * bgScale;
 
-                        bed.x = bg.x + offsetX;
-                        bed.y = bg.y + offsetY;
+                    //     bed.x = bg.x + offsetX;
+                    //     bed.y = bg.y + offsetY;
 
-                        // Scale the bed with the background
-                        bed.scale.set(bgScale * 0.4);
-                    }
+                    //     // Scale the bed with the background
+                    //     bed.scale.set(bgScale * 0.4);
+                    // }
 
-                    if (plant) {
-                        plant.x = screenWidth * 0.1;
-                        plant.y = screenHeight;
-                        (plant as any).baseScale = Math.max(0.5, Math.min(scale, 1.2));
-                        plant.scale.set((plant as any).baseScale);
-                    }
+                    // if (plant) {
+                    //     plant.x = screenWidth * 0.1;
+                    //     plant.y = screenHeight;
+                    //     (plant as any).baseScale = Math.max(0.5, Math.min(scale, 1.2));
+                    //     plant.scale.set((plant as any).baseScale);
+                    // }
 
                     // Left Curtain Positioning
                     if (leftCurtain) {
@@ -390,12 +391,12 @@ export default function Room() {
                         fanBlade.rotation += 0.15; // Clockwise rotation (slightly faster)
                     }
 
-                    if (plant) {
-                        const baseScale = (plant as any).baseScale || 1;
-                        plant.skew.x = Math.sin(t) * 0.12;
-                        plant.scale.x = baseScale * (1 + Math.sin(t) * 0.02);
-                        plant.scale.y = baseScale;
-                    }
+                    // if (plant) {
+                    //     const baseScale = (plant as any).baseScale || 1;
+                    //     plant.skew.x = Math.sin(t) * 0.12;
+                    //     plant.scale.x = baseScale * (1 + Math.sin(t) * 0.02);
+                    //     plant.scale.y = baseScale;
+                    // }
 
                     // Left Curtain 3D Animation (Vertex Manipulation)
                     if (leftCurtain && (leftCurtain as any).originalBuffer) {
@@ -500,7 +501,7 @@ export default function Room() {
                             <div>
                                 <h2>Error loading room image</h2>
                                 <p>${error instanceof Error ? error.message : String(error)}</p>
-                                <p>Please check if /room/room_no_blade.png exists in the public folder</p>
+                                <p>Please check the console for more details.</p>
                             </div>
                         </div>
                     `;
