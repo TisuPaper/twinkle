@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as PIXI from "pixi.js";
 import { Canvas } from "@react-three/fiber";
 import HelloKitty3D from "../../components/room/HelloKitty3D";
+import { BookshelfSceneContent } from "../../components/BookshelfScene";
 
 export default function Room() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -527,6 +528,9 @@ export default function Room() {
                 <Canvas camera={{ position: [0, 0, 5], fov: 50 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
                     <ambientLight intensity={0.5} />
                     <HelloKitty3D />
+                    <group position={[-0.2, 0, 0]} scale={0.5}>
+                        <BookshelfSceneContent showControls={false} showShadows={false} />
+                    </group>
                 </Canvas>
             </div>
         </div>
