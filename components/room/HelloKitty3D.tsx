@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useFBX, useAnimations } from "@react-three/drei";
+import { useFBX, useAnimations, Html } from "@react-three/drei";
 import { useThree, useFrame } from "@react-three/fiber";
 import { motion } from "framer-motion-3d";
 import * as THREE from "three";
@@ -58,7 +58,7 @@ export default function HelloKitty3D() {
         center: {
             scale: 0.015, // Adjust based on model size
             x: 0,
-            y: -1, // Slightly down to look grounded in center
+            y: -1.8, // Moved up a bit (was -2.5)
             z: 0,
             rotateY: 0,
             transition: { duration: 1.5, ease: "easeInOut" }
@@ -84,6 +84,38 @@ export default function HelloKitty3D() {
             {/* Add a light specifically for the model if needed */}
             <ambientLight intensity={0.5} />
             <directionalLight position={[5, 5, 5]} intensity={1.5} />
+
+            {/* Chat Bubble - Only visible in center */}
+            {currentVariant === "center" && (
+                <Html position={[0, 180, 0]} center>
+                    <div style={{
+                        background: 'white',
+                        padding: '16px 24px', // Increased padding
+                        borderRadius: '20px', // Increased radius
+                        borderBottomLeftRadius: '0',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        fontFamily: 'sans-serif',
+                        fontSize: '24px', // Increased font size
+                        fontWeight: 'bold',
+                        color: '#333',
+                        whiteSpace: 'nowrap',
+                        position: 'relative',
+                        marginBottom: '20px'
+                    }}>
+                        Hello my friend !
+                        <div style={{
+                            position: 'absolute',
+                            left: '0',
+                            bottom: '-10px',
+                            width: '0',
+                            height: '0',
+                            borderLeft: '10px solid white',
+                            borderBottom: '10px solid transparent',
+                            borderTop: '0'
+                        }} />
+                    </div>
+                </Html>
+            )}
         </motion.group>
     );
 }
