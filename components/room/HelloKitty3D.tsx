@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useFBX, useAnimations, Html } from "@react-three/drei";
 import { useThree, useFrame } from "@react-three/fiber";
-import { motion } from "framer-motion-3d";
+import gsap from "gsap";
 import * as THREE from "three";
 
 export default function HelloKitty3D() {
@@ -53,33 +53,55 @@ export default function HelloKitty3D() {
         };
     }, [actions, mixer]);
 
-    // Animation variants
-    const variants = {
-        center: {
-            scale: 0.015, // Adjust based on model size
-            x: 0,
-            y: -1.8, // Moved up a bit (was -2.5)
-            z: 0,
-            rotateY: 0,
-            transition: { duration: 1.5, ease: "easeInOut" }
-        },
-        corner: {
-            scale: 0.01, // Smaller
-            x: -viewport.width / 2 + 1.5, // Left corner + padding
-            y: -viewport.height / 2 + 1, // Bottom corner + padding
-            z: 0,
-            rotateY: 0.5, // Slight turn
-            transition: { duration: 2, ease: "easeInOut" }
+    // GSAP Animations
+    useEffect(() => {
+        if (!group.current) return;
+
+        if (currentVariant === "center") {
+            gsap.to(group.current.position, {
+                x: 0,
+                y: -1.8,
+                z: 0,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+            gsap.to(group.current.rotation, {
+                y: 0,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+            gsap.to(group.current.scale, {
+                x: 0.015,
+                y: 0.015,
+                z: 0.015,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+        } else if (currentVariant === "corner") {
+            gsap.to(group.current.position, {
+                x: -viewport.width / 2 + 1.5,
+                y: -viewport.height / 2 + 1,
+                z: 0,
+                duration: 2,
+                ease: "power2.inOut"
+            });
+            gsap.to(group.current.rotation, {
+                y: 0.5,
+                duration: 2,
+                ease: "power2.inOut"
+            });
+            gsap.to(group.current.scale, {
+                x: 0.01,
+                y: 0.01,
+                z: 0.01,
+                duration: 2,
+                ease: "power2.inOut"
+            });
         }
-    };
+    }, [currentVariant, viewport]);
 
     return (
-        <motion.group
-            ref={group}
-            animate={currentVariant}
-            variants={variants}
-            initial="center"
-        >
+        <group ref={group}>
             <primitive object={waveFbx} />
             {/* Add a light specifically for the model if needed */}
             <ambientLight intensity={0.5} />
@@ -116,7 +138,7 @@ export default function HelloKitty3D() {
                     </div>
                 </Html>
             )}
-        </motion.group>
+        </group>
     );
 }
 
