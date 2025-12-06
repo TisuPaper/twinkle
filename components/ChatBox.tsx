@@ -2,6 +2,31 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useFBX, useAnimations, Environment } from "@react-three/drei";
+import * as THREE from "three";
+
+function ChatBoxModel() {
+    const group = useRef<THREE.Group>(null);
+    const fbx = useFBX('/hellokitty/helloModel/chatboxwave.fbx');
+    const { actions } = useAnimations(fbx.animations, group);
+
+    useEffect(() => {
+        if (actions) {
+            const actionName = Object.keys(actions)[0];
+            const action = actions[actionName];
+            if (action) {
+                action.reset().fadeIn(0.5).play();
+            }
+        }
+    }, [actions]);
+
+    return (
+        <group ref={group} dispose={null} scale={0.02} position={[0, -2, 0]}>
+            <primitive object={fbx} />
+        </group>
+    );
+}
 
 interface ChatBoxProps {
     isOpen: boolean;
@@ -189,7 +214,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose, onSubmit }) => {
           ${isOpen ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"}
         `}
             >
-                {/* Hello Kitty Image - High Above ChatBox */}
+                {/*  Kitty Image - High Above ChatBox */}
                 <div className="absolute -top-40 left-1/2 -translate-x-1/2 z-50 animate-float">
                     <div className="relative group cursor-pointer">
                         {/* Bottom Spotlight Effect - Illuminating from below */}
@@ -213,17 +238,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose, onSubmit }) => {
                         {/* Animated Shadow */}
                         <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-24 h-8 bg-black/30 rounded-full blur-xl animate-shadow-bounce"></div>
 
-                        <Image
-                            src="/chatbox/hello_kitty_no_background.png"
-                            alt="Hello Kitty"
-                            width={160}
-                            height={160}
-                            className="drop-shadow-2xl transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-2 relative z-10"
-                            style={{
-                                objectFit: "contain",
-                                filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3)) drop-shadow(0 5px 10px rgba(141, 110, 99, 0.4)) brightness(1.05)',
-                            }}
-                        />
+                        <div className="w-[200px] h-[200px] relative z-10">
+                            <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
+                                <ambientLight intensity={1.5} />
+                                <directionalLight position={[5, 5, 5]} intensity={1} />
+                                <Environment preset="city" />
+                                <ChatBoxModel />
+                            </Canvas>
+                        </div>
                     </div>
                 </div>
 
