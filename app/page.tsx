@@ -5,7 +5,7 @@ import Head from "next/head";
 import ThreeScene from "../components/ThreeScene";
 import Loader from "../components/Loader";
 import ChatBox from "../components/ChatBox";
-import Room from "../components/Room";
+import Room from "./room/Room";
 
 const Home: React.FC = () => {
   // State to track if the preloader is finished and 3D animations should start
