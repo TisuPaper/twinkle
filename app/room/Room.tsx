@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as PIXI from "pixi.js";
+import { Canvas } from "@react-three/fiber";
+import HelloKitty3D from "../../components/room/HelloKitty3D";
 
 export default function Room() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -160,34 +162,7 @@ export default function Room() {
                     console.log(`Screen dimensions: ${screenWidth}x${screenHeight}`);
                     console.log(`Image dimensions: ${bgTexture.width}x${bgTexture.height}`);
 
-                    // Display dimensions on screen (temporary overlay)
-                    let infoText = document.getElementById('room-dimensions-info');
-                    if (!infoText && containerRef.current) {
-                        infoText = document.createElement('div');
-                        infoText.id = 'room-dimensions-info';
-                        infoText.style.cssText = `
-                            position: fixed;
-                            top: 20px;
-                            left: 20px;
-                            background: rgba(0, 0, 0, 0.8);
-                            color: white;
-                            padding: 15px 20px;
-                            border-radius: 8px;
-                            font-family: monospace;
-                            font-size: 14px;
-                            z-index: 10000;
-                            pointer-events: none;
-                            line-height: 1.6;
-                        `;
-                        document.body.appendChild(infoText);
-                    }
-                    if (infoText) {
-                        infoText.innerHTML = `
-                            <div><strong>Screen:</strong> ${Math.round(screenWidth)} × ${Math.round(screenHeight)}px</div>
-                            <div><strong>Image:</strong> ${bgTexture.width} × ${bgTexture.height}px</div>
-                            <div style="margin-top: 8px; font-size: 12px; opacity: 0.8;">Resize your image to match screen dimensions</div>
-                        `;
-                    }
+
 
                     // 1. Background Cover (fill entire screen, may crop edges)
                     const bgRatio = bgTexture.width / bgTexture.height;
@@ -491,7 +466,6 @@ export default function Room() {
 
 
                 });
-
             } catch (error) {
                 console.error("Error initializing Pixi:", error);
                 // Show error message on screen for debugging
@@ -515,11 +489,6 @@ export default function Room() {
             isMounted = false;
             if (resizeListener) {
                 window.removeEventListener('resize', resizeListener);
-            }
-            // Clean up dimension info display
-            const infoText = document.getElementById('room-dimensions-info');
-            if (infoText) {
-                infoText.remove();
             }
             // Only destroy if initialized (or try/catch)
             // Note: If init is still pending, the 'if (!isMounted)' check inside initApp will handle destruction.
@@ -548,5 +517,20 @@ export default function Room() {
         };
     }, []);
 
-    return <div ref={containerRef} className="fixed inset-0 w-full h-full bg-white" />;
+    return (
+        <div className="relative w-full h-full">
+            {/* Pixi Container */}
+            <div ref={containerRef} className="fixed inset-0 w-full h-full bg-white" />
+
+            {/* 3D Overlay */}
+            <div className="fixed inset-0 pointer-events-none z-10">
+                <Canvas camera={{ position: [0, 0, 5], fov: 50 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
+                    <ambientLight intensity={0.5} />
+                    <HelloKitty3D />
+                </Canvas>
+            </div>
+        </div>
+    );
 }
+
+
