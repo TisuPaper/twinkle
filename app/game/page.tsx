@@ -92,15 +92,7 @@ function AnswerGate({
 }) {
     return (
         <group position={position}>
-            {/* Gate Frame */}
-            <mesh position={[0, 1.5, 0]}>
-                <boxGeometry args={[1.8, 3, 0.1]} />
-                <meshStandardMaterial color="white" transparent opacity={0.5} />
-            </mesh>
-            <mesh position={[0, 1.5, 0]}>
-                <boxGeometry args={[1.9, 3.1, 0.05]} />
-                <meshStandardMaterial color={color} />
-            </mesh>
+            {/* Gate Frame Removed */}
 
             {/* Answer Text */}
             <Text
@@ -161,10 +153,13 @@ function BeachEnvironment() {
 
             {decorations}
 
-            {/* Clouds */}
-            <Cloud opacity={0.6} scale={2} position={[0, 15, -50]} speed={0.2} segments={20} />
-            <Cloud opacity={0.5} scale={3} position={[-20, 20, -100]} speed={0.1} segments={20} />
-            <Cloud opacity={0.5} scale={3} position={[20, 18, -80]} speed={0.15} segments={20} />
+            {/* Floating Clouds Background */}
+            <Cloud opacity={0.5} scale={4} position={[0, -20, -100]} speed={0.2} segments={40} />
+            <Cloud opacity={0.5} scale={4} position={[-50, 10, -80]} speed={0.2} segments={40} />
+            <Cloud opacity={0.5} scale={4} position={[50, 10, -80]} speed={0.2} segments={40} />
+            <Cloud opacity={0.3} scale={5} position={[0, 30, -150]} speed={0.1} segments={40} />
+            <Cloud opacity={0.4} scale={3} position={[-30, -10, -60]} speed={0.3} segments={30} />
+            <Cloud opacity={0.4} scale={3} position={[30, -10, -60]} speed={0.3} segments={30} />
         </group>
     );
 }
@@ -289,7 +284,7 @@ export default function GamePage() {
 
                 {/* Quiz Header - Always Visible */}
                 <div className="absolute top-8 bg-white/90 backdrop-blur px-8 py-4 rounded-2xl shadow-xl transform transition-transform duration-500 hover:scale-105">
-                    <h1 className="text-4xl font-bold text-slate-800 text-center">Math Quiz</h1>
+                    <h1 className="text-4xl font-bold text-slate-800 text-center">H Quiz</h1>
                     <p className="text-6xl font-black text-indigo-600 mt-2 text-center">{quiz.question}</p>
                 </div>
 
