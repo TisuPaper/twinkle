@@ -4,7 +4,11 @@ import { useThree, useFrame } from "@react-three/fiber";
 import { motion } from "framer-motion-3d";
 import * as THREE from "three";
 
-export default function HelloKitty3D() {
+interface HelloKitty3DProps {
+    onHelloComplete?: () => void;
+}
+
+export default function HelloKitty3D({ onHelloComplete }: HelloKitty3DProps) {
     const group = useRef<any>(null);
     const waveFbx = useFBX("/hellokitty/helloModel/chatboxwave.fbx");
     const idleFbx = useFBX("/hellokitty/helloModel/dwarf Idle.fbx");
@@ -43,6 +47,11 @@ export default function HelloKitty3D() {
 
                 // Trigger move to corner
                 setCurrentVariant("corner");
+
+                // Notify parent that greeting is complete
+                if (onHelloComplete) {
+                    onHelloComplete();
+                }
             }
         };
 

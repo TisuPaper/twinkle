@@ -672,20 +672,32 @@ interface BookshelfSceneContentProps {
     showShadows?: boolean;
 }
 
-export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({ 
-    showControls = false, 
-    showShadows = true 
+export const BookshelfModel = Bookshelf;
+
+export const BookshelfEnvironment: React.FC<{ showShadows?: boolean }> = ({ showShadows = true }) => (
+    <>
+        <ambientLight intensity={0.15} />
+        <directionalLight
+            position={[5, 10, 5]}
+            intensity={0.5}
+            castShadow={showShadows}
+            shadow-mapSize={[1024, 1024] as any}
+        />
+        <Environment preset="city" />
+        <EffectComposer>
+            <N8AO aoRadius={1} intensity={1} />
+            <Bloom luminanceThreshold={1.5} mipmapBlur intensity={0.05} />
+        </EffectComposer>
+    </>
+);
+
+export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({
+    showControls = false,
+    showShadows = true
 }) => {
     return (
         <>
-            <ambientLight intensity={0.15} />
-            <directionalLight
-                position={[5, 10, 5]}
-                intensity={0.5}
-                castShadow={showShadows}
-                shadow-mapSize={[1024, 1024] as any}
-            />
-            <Environment preset="city" />
+            <BookshelfEnvironment showShadows={showShadows} />
 
             <Center>
                 <group position={[4.0, 0, 0]} rotation={[0, -0.3, 0]}>
@@ -698,11 +710,6 @@ export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({
             {showControls && (
                 <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} />
             )}
-
-            <EffectComposer>
-                <N8AO aoRadius={1} intensity={1} />
-                <Bloom luminanceThreshold={1.5} mipmapBlur intensity={0.05} />
-            </EffectComposer>
         </>
     );
 };

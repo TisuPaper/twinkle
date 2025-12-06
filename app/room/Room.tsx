@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
 import { Canvas } from "@react-three/fiber";
+import { Center, Float } from "@react-three/drei";
 import HelloKitty3D from "../../components/room/HelloKitty3D";
-import { BookshelfSceneContent } from "../../components/BookshelfScene";
+import { BookshelfModel, BookshelfEnvironment } from "../../components/BookshelfScene";
 
 export default function Room() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ export default function Room() {
                     const curtainTexture = await PIXI.Assets.load("/room/lleft_curtain.png");
                     if (isMounted) {
                         // Create geometry: 10x10 segments
-                        // Pixi v8 PlaneGeometry might take options or args. 
+                        // Pixi v8 PlaneGeometry might take options or args.
                         // Trying options object which is common in v8.
                         const geometry = new PIXI.PlaneGeometry({
                             width: curtainTexture.width,
@@ -303,7 +304,7 @@ export default function Room() {
                         const originalHeight = bgTexture.height;
 
                         // Position at right side of window
-                        // Assuming window width is roughly 0.2 of screen? 
+                        // Assuming window width is roughly 0.2 of screen?
                         // Left is at 0.40. Let's try 0.60 for Right.
                         const targetX = originalWidth * 0.70; // Moved left slightly (was 0.72)
                         const targetY = originalHeight * 0.02; // Moved up more (was 0.05)
@@ -398,7 +399,7 @@ export default function Room() {
 
                             // Create a "wind" wave moving downwards or sideways
                             // Wind direction: Right to Left.
-                            // So we want waves propagating from right to left? 
+                            // So we want waves propagating from right to left?
                             // Or just ripples.
 
                             // Factor: how far down is this vertex?
@@ -518,6 +519,8 @@ export default function Room() {
         };
     }, []);
 
+    const [showBookshelf, setShowBookshelf] = useState(false);
+
     return (
         <div className="relative w-full h-full">
             {/* Pixi Container */}
@@ -526,15 +529,35 @@ export default function Room() {
             {/* 3D Overlay */}
             <div className="fixed inset-0 pointer-events-none z-10">
                 <Canvas camera={{ position: [0, 0, 5], fov: 50 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
-                    <ambientLight intensity={0.5} />
-                    <HelloKitty3D />
-                    <group position={[-0.2, 0, 0]} scale={0.5}>
-                        <BookshelfSceneContent showControls={false} showShadows={false} />
+                    {/* Environment and Effects - Always rendered to prevent blinking */}
+                    <BookshelfEnvironment showShadows={false} />
+
+                    {/* Note: ambientLight might be duplicated if inside BookshelfEnvironment,
+                        but we removed the standalone one here to be safe.
+                        BookshelfEnvironment has ambientLight(0.15) and directionalLight.
+                        HelloKitty might need more light if she was relying on the previous ambient(0.5).
+                        Let's add a dedicated light for her if needed, or trust the environment.
+                    */}
+                    <ambientLight intensity={0.4} />
+
+                    <HelloKitty3D onHelloComplete={() => {
+                        setTimeout(() => {
+                            setShowBookshelf(true);
+                        }, 2000);
+                    }} />
+
+                    {/* Bookshelf Model - Always mounted but hidden via visible prop */}
+                    <group position={[0.8, 0, 0]} scale={0.5} visible={showBookshelf}>
+                        <Center>
+                            <group position={[4.0, 0, 0]} rotation={[0, -0.3, 0]}>
+                                <Float speed={1} rotationIntensity={0.2} floatIntensity={0.2}>
+                                    <BookshelfModel />
+                                </Float>
+                            </group>
+                        </Center>
                     </group>
                 </Canvas>
             </div>
         </div>
     );
 }
-
-
