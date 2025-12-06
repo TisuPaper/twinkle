@@ -153,46 +153,61 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
             </div>
             <h2 className="text-3xl font-bold text-gray-800">Trace the word: "{word}"</h2>
 
-            <div className="relative">
+            <div className="relative p-2 bg-white rounded-3xl shadow-sm transform rotate-1">
                 <canvas
                     ref={canvasRef}
                     onPointerDown={startDrawing}
                     onPointerMove={draw}
                     onPointerUp={stopDrawing}
                     onPointerLeave={stopDrawing}
-                    style={{ touchAction: 'none' }} // Critical for preventing scrolling on touch
-                    className="border-4 border-white rounded-3xl bg-white/50 cursor-crosshair shadow-[0_8px_32px_0_rgba(31,38,135,0.1)]"
+                    style={{
+                        touchAction: 'none',
+                        backgroundImage: `repeating-linear-gradient(transparent, transparent 39px, #e5e7eb 40px),
+                                        linear-gradient(to right, #fca5a5 40px, transparent 40px)`,
+                        backgroundSize: '100% 40px, 100% 100%'
+                    }}
+                    className="rounded-2xl cursor-crosshair"
                 />
             </div>
 
             <div className="w-full max-w-md">
-                <div className="flex justify-between text-sm text-gray-500 font-bold mb-2">
+                <div className="flex justify-between text-sm text-[#5D4037] font-bold mb-2 font-['Comic_Sans_MS','Chalkboard_SE','sans-serif']">
                     <span>Progress</span>
                     <span>{Math.round(progress)}%</span>
                 </div>
-                <div className="w-full bg-white/50 rounded-full h-6 overflow-hidden border-2 border-white shadow-inner">
+                {/* Crayon Style Progress Bar */}
+                <div className="w-full h-6 bg-gray-100 rounded-full border-2 border-gray-300 overflow-hidden shadow-inner relative">
                     <div
-                        className="bg-purple-400 h-full transition-all duration-300 rounded-full"
-                        style={{ width: `${progress}%` }}
+                        className="h-full bg-[#FF6B6B] transition-all duration-300 relative"
+                        style={{
+                            width: `${progress}%`,
+                            backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent)',
+                            backgroundSize: '1rem 1rem'
+                        }}
                     />
                 </div>
             </div>
 
-            <div className="flex gap-4">
-                <Button onClick={clearCanvas} variant="secondary">
-                    <div className="flex items-center gap-2">
-                        <EraserIcon className="w-5 h-5" />
-                        <span>Clear</span>
+            <div className="flex gap-6 mt-4">
+                <Button onClick={clearCanvas} variant="secondary" className="bg-[#fff] border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transform -rotate-2">
+                    <div className="flex flex-col items-center gap-1">
+                        <EraserIcon className="w-8 h-8 text-gray-600" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Clear</span>
                     </div>
                 </Button>
                 <Button
                     onClick={onComplete}
                     disabled={progress < 100}
-                    style={{ opacity: 1, cursor: progress < 100 ? 'not-allowed' : 'pointer' }}
+                    style={{
+                        opacity: 1,
+                        cursor: progress < 100 ? 'not-allowed' : 'pointer',
+                        filter: progress < 100 ? 'grayscale(100%) opacity(0.5)' : 'none'
+                    }}
+                    className="bg-[#fff] border-4 border-green-400 text-green-600 hover:scale-110 transform rotate-2"
                 >
-                    <div className="flex items-center gap-2">
-                        <CheckIcon className="w-5 h-5" />
-                        <span>Complete</span>
+                    <div className="flex flex-col items-center gap-1">
+                        <CheckIcon className="w-10 h-10 text-green-500" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Done!</span>
                     </div>
                 </Button>
             </div>
