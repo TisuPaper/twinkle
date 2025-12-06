@@ -2,26 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
+import { useRouter } from "next/navigation";
 import ThreeScene from "../components/ThreeScene";
 import Loader from "../components/Loader";
 import ChatBox from "../components/ChatBox";
-import Room from "./room/Room";
 
 const Home: React.FC = () => {
+  const router = useRouter();
   // State to track if the preloader is finished and 3D animations should start
   const [appStarted, setAppStarted] = useState(false);
   // State to track if chatbox should be open (open automatically when app starts)
   const [isChatboxOpen, setIsChatboxOpen] = useState(false);
-  // State to track if room should be shown (after prompt submission)
-  const [showRoom, setShowRoom] = useState(false);
-
-
-
 
   const handlePromptSubmit = (prompt: string) => {
-    // Close chatbox and show room after prompt submission
+    // Close chatbox and redirect to room after prompt submission
     setIsChatboxOpen(false);
-    setShowRoom(true);
+    router.push('/room');
   };
 
   return (
@@ -34,17 +30,7 @@ const Home: React.FC = () => {
       <div className="relative w-full h-screen overflow-hidden">
 
         {/* RENDER THE 3D SCENE, PASSING THE START SIGNAL */}
-        {/* RENDER THE 3D SCENE, PASSING THE START SIGNAL */}
-        {!showRoom && <ThreeScene start={appStarted} onStartJourney={() => setIsChatboxOpen(true)} />}
-
-        {/* Room - Only show after prompt submission */}
-        {showRoom && (
-          <div className="absolute inset-0 z-50 transition-opacity duration-500">
-            <Room />
-          </div>
-        )}
-
-
+        <ThreeScene start={appStarted} onStartJourney={() => setIsChatboxOpen(true)} />
 
         {/* --- LOADER --- */}
         <Loader onFinished={() => setAppStarted(true)} />
@@ -71,8 +57,8 @@ const Home: React.FC = () => {
           © 2025 /
         </div>
 
-        {/* ChatBox - Only show when room is not shown */}
-        {appStarted && !showRoom && (
+        {/* ChatBox - Only show when app started */}
+        {appStarted && (
           <ChatBox
             isOpen={isChatboxOpen}
             onClose={() => setIsChatboxOpen(false)}
