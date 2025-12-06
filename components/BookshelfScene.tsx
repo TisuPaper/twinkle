@@ -222,7 +222,7 @@ const Decoration: React.FC<DecorationProps> = ({ position, color, type = 'sphere
 
 
 const CartoonHand: React.FC<CartoonHandProps> = ({ position, rotation, side = 'left' }) => {
-    const handScale = 0.9;
+    const handScale = 0.5;
     const isLeft = side === 'left';
 
     // Finger common geometry (thicker)
@@ -297,13 +297,13 @@ const CartoonArm: React.FC<CartoonArmProps> = ({ position, side = 'left' }) => {
 
         return new THREE.CatmullRomCurve3([
             new THREE.Vector3(startX, 0, 0),        // Shoulder (attached to shelf)
-            new THREE.Vector3(cp1X, -0.8, 0.3),     // Elbow (Down and slightly out)
-            new THREE.Vector3(cp2X, -1.6, 0.3),     // Forearm
-            new THREE.Vector3(endX, -2.2, 0.5)      // Hand (Hanging lower but closer)
+            new THREE.Vector3(cp1X, -0.3, 0.3),     // Elbow (Down and slightly out)
+            new THREE.Vector3(cp2X, -0.6, 0.3),     // Forearm
+            new THREE.Vector3(endX, -0.9, 0.5)      // Hand (Hanging lower but closer)
         ]);
     }, [side]);
 
-    const tubeArgs: [THREE.CatmullRomCurve3, number, number, number, boolean] = [curve, 64, 0.14, 16, false];
+    const tubeArgs: [THREE.CatmullRomCurve3, number, number, number, boolean] = [curve, 64, 0.11, 16, false];
 
     const handPos = curve.getPoint(1);
     const isLeft = side === 'left';
@@ -331,7 +331,7 @@ const CartoonArm: React.FC<CartoonArmProps> = ({ position, side = 'left' }) => {
 
 const CartoonShoe: React.FC<CartoonShoeProps> = ({ position, rotation, side = 'left' }) => {
     const shoeColor = '#FF4500'; // Orange-Red
-    const scale = 0.9;
+    const scale = 0.75;
 
     return (
         <group position={position} rotation={rotation as any} scale={scale}>
@@ -386,7 +386,7 @@ const CartoonLeg: React.FC<CartoonLegProps> = ({ position, side = 'left' }) => {
         ]);
     }, [side]);
 
-    const tubeArgs: [THREE.CatmullRomCurve3, number, number, number, boolean] = [curve, 64, 0.13, 16, false];
+    const tubeArgs: [THREE.CatmullRomCurve3, number, number, number, boolean] = [curve, 64, 0.10, 16, false];
     const anklePos = curve.getPoint(1);
 
     return (
@@ -482,11 +482,11 @@ const CartoonEye: React.FC<CartoonEyeProps> = ({ position, rotation, side = 'lef
 
 const Bookshelf: React.FC = () => {
     // Shelf dimensions
-    const width = 4;
-    const height = 6;
+    const width = 3.5;
+    const height = 3.5;
     const depth = 1.5;
     const thickness = 0.2;
-    const shelfCount = 3; // Number of spaces (books sit in these spaces)
+    const shelfCount = 2; // Number of spaces (books sit in these spaces)
 
     const woodTexture = useTexture('/wood_color.png');
 
@@ -497,6 +497,14 @@ const Bookshelf: React.FC = () => {
 
     // Generate books for each shelf
     const shelvesData: ShelfItem[][] = useMemo(() => {
+        // Seeded random number generator (Linear Congruential Generator)
+        // Simple and sufficient for visual consistency
+        let seed = 123456789;
+        const seededRandom = () => {
+            seed = (seed * 1664525 + 1013904223) % 4294967296;
+            return seed / 4294967296;
+        };
+
         const data: ShelfItem[][] = [];
         for (let i = 0; i < shelfCount; i++) {
             const surfaceY = -height / 2 + thickness / 2 + i * (gapHeight + thickness);
@@ -504,19 +512,19 @@ const Bookshelf: React.FC = () => {
             let currentX = -width / 2 + 0.5;
 
             while (currentX < width / 2 - 0.5) {
-                const isBook = Math.random() > 0.2;
+                const isBook = seededRandom() > 0.2;
 
                 if (isBook) {
                     // 20% chance of horizontal stack
-                    const isHorizontal = Math.random() > 0.8;
+                    const isHorizontal = seededRandom() > 0.8;
 
                     if (isHorizontal) {
-                        const bookHeight = 0.8 + Math.random() * 0.4; // This becomes the width on shelf
-                        const bookWidth = 0.15 + Math.random() * 0.1; // Thickness (height in stack)
+                        const bookHeight = 0.8 + seededRandom() * 0.4; // This becomes the width on shelf
+                        const bookWidth = 0.15 + seededRandom() * 0.1; // Thickness (height in stack)
 
                         // Ensure stack fits in gap
                         const maxStackHeight = gapHeight - 0.1;
-                        const numBooks = Math.floor(Math.random() * 3) + 2; // 2 to 4 books
+                        const numBooks = Math.floor(seededRandom() * 3) + 2; // 2 to 4 books
 
                         // Check if we have space horizontally
                         if (currentX + bookHeight > width / 2 - 0.5) break;
@@ -529,7 +537,7 @@ const Bookshelf: React.FC = () => {
                         }
 
                         for (let k = 0; k < actualNumBooks; k++) {
-                            const color = BOOK_COLORS[Math.floor(Math.random() * BOOK_COLORS.length)];
+                            const color = BOOK_COLORS[Math.floor(seededRandom() * BOOK_COLORS.length)];
                             items.push({
                                 type: 'book',
                                 position: [currentX + bookHeight / 2, surfaceY + bookWidth / 2 + k * bookWidth, 0],
@@ -542,10 +550,10 @@ const Bookshelf: React.FC = () => {
 
                     } else {
                         // Vertical book (existing logic)
-                        const bookWidth = 0.15 + Math.random() * 0.2;
-                        const bookHeight = 0.8 + Math.random() * 0.4;
+                        const bookWidth = 0.15 + seededRandom() * 0.2;
+                        const bookHeight = 0.8 + seededRandom() * 0.4;
                         const actualBookHeight = Math.min(bookHeight, gapHeight - 0.1);
-                        const color = BOOK_COLORS[Math.floor(Math.random() * BOOK_COLORS.length)];
+                        const color = BOOK_COLORS[Math.floor(seededRandom() * BOOK_COLORS.length)];
 
                         if (currentX + bookWidth > width / 2 - 0.5) break;
 
@@ -561,15 +569,15 @@ const Bookshelf: React.FC = () => {
 
                 } else {
                     // Decoration or gap
-                    const gap = 0.5 + Math.random() * 0.5;
+                    const gap = 0.5 + seededRandom() * 0.5;
                     if (currentX + gap > width / 2 - 0.5) break;
 
-                    if (Math.random() > 0.5) {
+                    if (seededRandom() > 0.5) {
                         items.push({
                             type: 'decoration',
                             position: [currentX + gap / 2, surfaceY + 0.3, 0],
-                            color: BOOK_COLORS[Math.floor(Math.random() * BOOK_COLORS.length)],
-                            decorationType: (Math.random() > 0.6 ? 'blob' : (Math.random() > 0.5 ? 'cube' : 'sphere')) as 'blob' | 'cube' | 'sphere'
+                            color: BOOK_COLORS[Math.floor(seededRandom() * BOOK_COLORS.length)],
+                            decorationType: (seededRandom() > 0.6 ? 'blob' : (seededRandom() > 0.5 ? 'cube' : 'sphere')) as 'blob' | 'cube' | 'sphere'
                         })
                     }
                     currentX += gap;
@@ -578,7 +586,7 @@ const Bookshelf: React.FC = () => {
             data.push(items);
         }
         return data;
-    }, []);
+    }, [height, width, gapHeight, shelfCount, totalShelfThickness, thickness]);
 
     // Texture Repeats
     // Adjust these values to change the density of the wood grain
@@ -593,8 +601,8 @@ const Bookshelf: React.FC = () => {
             <CartoonEye side="right" position={[0.4, height / 2 + 0.4, depth / 2]} rotation={[0, 0, 0.1]} />
 
             {/* Arms */}
-            <CartoonArm side="left" position={[-width / 2, 1, 0]} />
-            <CartoonArm side="right" position={[width / 2, 1, 0]} />
+            <CartoonArm side="left" position={[-width / 2, 0, 0]} />
+            <CartoonArm side="right" position={[width / 2, 0, 0]} />
 
             {/* Legs */}
             <CartoonLeg side="left" position={[-1, -height / 2, 0]} />
@@ -672,23 +680,35 @@ interface BookshelfSceneContentProps {
     showShadows?: boolean;
 }
 
-export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({ 
-    showControls = false, 
-    showShadows = true 
+export const BookshelfModel = Bookshelf;
+
+export const BookshelfEnvironment: React.FC<{ showShadows?: boolean }> = ({ showShadows = true }) => (
+    <>
+        <ambientLight intensity={0.15} />
+        <directionalLight
+            position={[5, 10, 5]}
+            intensity={0.5}
+            castShadow={showShadows}
+            shadow-mapSize={[1024, 1024] as any}
+        />
+        <Environment preset="city" />
+        <EffectComposer>
+            <N8AO aoRadius={1} intensity={1} />
+            <Bloom luminanceThreshold={1.5} mipmapBlur intensity={0.05} />
+        </EffectComposer>
+    </>
+);
+
+export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({
+    showControls = false,
+    showShadows = true
 }) => {
     return (
         <>
-            <ambientLight intensity={0.15} />
-            <directionalLight
-                position={[5, 10, 5]}
-                intensity={0.5}
-                castShadow={showShadows}
-                shadow-mapSize={[1024, 1024] as any}
-            />
-            <Environment preset="city" />
+            <BookshelfEnvironment showShadows={showShadows} />
 
             <Center>
-                <group position={[4.0, 0, 0]} rotation={[0, -0.3, 0]}>
+                <group position={[4.0, 2.0, 0]} rotation={[0, -0.3, 0]}>
                     <Float speed={1} rotationIntensity={0.2} floatIntensity={0.2}>
                         <Bookshelf />
                     </Float>
@@ -698,11 +718,6 @@ export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({
             {showControls && (
                 <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} />
             )}
-
-            <EffectComposer>
-                <N8AO aoRadius={1} intensity={1} />
-                <Bloom luminanceThreshold={1.5} mipmapBlur intensity={0.05} />
-            </EffectComposer>
         </>
     );
 };
