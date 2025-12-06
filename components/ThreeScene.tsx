@@ -179,45 +179,34 @@ const PanoBackground = ({ url }: { url: string }) => {
     );
 };
 
-// --- 5. THE SCENE ---
-interface SceneProps {
-    start: boolean; // ADDED: Prop to synchronize R3F animations
-    onStartJourney?: () => void; // ADDED: Callback for zoom/transition
-}
-
-// Separate component for zoom logic since useFrame must be inside Canvas
 const ZoomRig = ({ active }: { active: boolean }) => {
-    useFrame((state) => {
+    useFrame((state, delta) => {
         if (active) {
-            const camera = state.camera as THREE.PerspectiveCamera;
-            // Smoothly interpolate FOV from 50 (default) to 30 (zoomed in)
-            camera.fov = THREE.MathUtils.lerp(camera.fov, 30, 0.05);
-            camera.updateProjectionMatrix();
+            state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, -2, delta * 2);
         }
     });
     return null;
 };
 
+// --- 5. THE SCENE ---
+interface SceneProps {
+    start: boolean; // ADDED: Prop to synchronize R3F animations
+    onStartJourney?: () => void; // Callback when Start Journey is clicked
+}
+
 const ThreeScene: React.FC<SceneProps> = ({ start, onStartJourney }) => {
+    const router = useRouter();
     // Configuration for the sequence
     const SEQUENCE_DELAY = 1; // Time to wait before Top Text & Button appear
     const [isZooming, setIsZooming] = useState(false);
     const [isExiting, setIsExiting] = useState(false); // ADDED: Track fade out state
 
     const handleStartJourney = () => {
-        // 1. Trigger fade out of components
-        setIsExiting(true);
-
-        // 2. Wait for fade out (approx 2000ms), THEN start zooming
-        setTimeout(() => {
-            setIsZooming(true);
-
-            // 3. Wait for zoom to progress (approx 1000ms), THEN open ChatBox
-            setTimeout(() => {
-                if (onStartJourney) onStartJourney();
-            }, 1000);
-
-        }, 2000); // 2.0s delay for components to clear completely
+        if (onStartJourney) {
+            onStartJourney();
+        } else {
+            router.push('/experience');
+        }
     };
 
     return (

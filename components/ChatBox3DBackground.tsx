@@ -27,22 +27,22 @@ const ChatBox3DBackground = () => {
                 />
             </div>
             <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden">
-                <Canvas
-                    camera={{ position: [0, 0, 5], fov: 50 }}
-                    gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
-                    className="w-full h-full"
-                >
-                    <ambientLight intensity={1.2} />
-                    <directionalLight position={[5, 5, 5]} intensity={1} />
-                    <directionalLight position={[-5, -5, -5]} intensity={0.5} />
-                    <pointLight position={[0, 0, 5]} intensity={0.8} />
-                    <Suspense fallback={null}>
-                        <Model />
-                        <Environment preset="sunset" />
-                        <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={10} blur={2.5} far={4} />
-                    </Suspense>
-                    <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
-                </Canvas>
+            <Canvas
+                camera={{ position: [0, 0, 5], fov: 50 }}
+                gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
+                className="w-full h-full"
+            >
+                <ambientLight intensity={1.2} />
+                <directionalLight position={[5, 5, 5]} intensity={1} />
+                <directionalLight position={[-5, -5, -5]} intensity={0.5} />
+                <pointLight position={[0, 0, 5]} intensity={0.8} />
+                <Suspense fallback={null}>
+                    <Model />
+                    <Environment preset="sunset" />
+                    <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={10} blur={2.5} far={4} />
+                </Suspense>
+                <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+            </Canvas>
             </div>
         </div>
     );

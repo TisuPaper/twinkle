@@ -1,16 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import ThreeScene from "../components/ThreeScene";
 import Loader from "../components/Loader";
 import ChatBox from "../components/ChatBox";
+import Room from "./room/Room";
 
 const Home: React.FC = () => {
   // State to track if the preloader is finished and 3D animations should start
   const [appStarted, setAppStarted] = useState(false);
-  // State to track if chatbox should be open
+  // State to track if chatbox should be open (open automatically when app starts)
   const [isChatboxOpen, setIsChatboxOpen] = useState(false);
+  // State to track if room should be shown (after prompt submission)
+  const [showRoom, setShowRoom] = useState(false);
+
+
+
+
+  const handlePromptSubmit = (prompt: string) => {
+    // Close chatbox and show room after prompt submission
+    setIsChatboxOpen(false);
+    setShowRoom(true);
+  };
 
   return (
     <>
@@ -22,7 +34,17 @@ const Home: React.FC = () => {
       <div className="relative w-full h-screen overflow-hidden">
 
         {/* RENDER THE 3D SCENE, PASSING THE START SIGNAL */}
-        <ThreeScene start={appStarted} onStartJourney={() => setIsChatboxOpen(true)} />
+        {/* RENDER THE 3D SCENE, PASSING THE START SIGNAL */}
+        {!showRoom && <ThreeScene start={appStarted} onStartJourney={() => setIsChatboxOpen(true)} />}
+
+        {/* Room - Only show after prompt submission */}
+        {showRoom && (
+          <div className="absolute inset-0 z-50 transition-opacity duration-500">
+            <Room />
+          </div>
+        )}
+
+
 
         {/* --- LOADER --- */}
         <Loader onFinished={() => setAppStarted(true)} />
@@ -49,8 +71,14 @@ const Home: React.FC = () => {
           © 2025 /
         </div>
 
-        {/* ChatBox */}
-        {appStarted && <ChatBox isOpen={isChatboxOpen} onClose={() => setIsChatboxOpen(false)} />}
+        {/* ChatBox - Only show when room is not shown */}
+        {appStarted && !showRoom && (
+          <ChatBox
+            isOpen={isChatboxOpen}
+            onClose={() => setIsChatboxOpen(false)}
+            onSubmit={handlePromptSubmit}
+          />
+        )}
 
       </div>
     </>
