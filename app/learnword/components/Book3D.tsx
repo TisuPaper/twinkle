@@ -1,25 +1,38 @@
 // components/Book3D.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Box, Text, Html } from '@react-three/drei';
+import { Box, Text, Html, RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- Constants ---
-const PAGE_WIDTH = 6.0;
-const PAGE_HEIGHT = 8.0;
+const COVER_WIDTH = 6.2;
+const COVER_HEIGHT = 8.2;
+const PAGE_WIDTH = 5.8;
+const PAGE_HEIGHT = 7.8;
 const PAGE_THICKNESS = 0.05; // Thinner pages for better stacking
 const Z_GAP = 0.06; // Gap between pages to prevent z-fighting
+const COVER_THICKNESS = 0.15;
 
 // --- Materials ---
-const CoverMaterial = new THREE.MeshStandardMaterial({
-    color: new THREE.Color('#101010'),
-    roughness: 0.8,
-    metalness: 0.1,
+const CoverMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#97d2ee'), // Light blue to match cover image background
+    toneMapped: false,
 });
 
 const PageMaterial = new THREE.MeshStandardMaterial({
-    color: '#f8e8e7',
-    roughness: 0.5,
+    color: '#f5f5f0f1', // Slightly gray paper color
+    roughness: 0.9,
+    metalness: 0.0,
+});
+
+const SpineMaterial = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color('#97d2ee'), // Light blue
+    roughness: 0.2,
+    metalness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1,
+    transparent: true,
+    opacity: 0.9,
 });
 
 // --- Content Components ---
@@ -63,12 +76,9 @@ const PageContent = ({ text, title, color = "#333", align = "left" }: PageConten
 );
 
 const CoverFront = () => (
-    <group position={[0, 0, PAGE_THICKNESS / 2 + 0.01]}>
-        <Text position={[0, 0.8, 0]} fontSize={0.3} color="white" anchorX="center" anchorY="middle" maxWidth={2.5} textAlign="center">
-            HOW TO TALK TO WHITE KIDS
-        </Text>
-        <Text position={[0, 0.2, 0]} fontSize={0.2} color="#cccccc" anchorX="center" anchorY="middle">
-            about RACISM
+    <group position={[0, 0, COVER_THICKNESS / 2 + 0.01]}>
+        <Text position={[0, 0.8, 0]} fontSize={0.3} color="#d4af37" anchorX="center" anchorY="middle" maxWidth={2.5} textAlign="center">
+            Chapter 1
         </Text>
     </group>
 );
@@ -77,14 +87,18 @@ const CoverFront = () => (
 interface BookPageProps {
     index: number;
     isFlipped: boolean;
+    flippedIndex: number; // Added prop
     onFlip: () => void;
     frontContent: React.ReactNode;
     backContent: React.ReactNode;
     totalLeaves: number;
+    frontTexture?: THREE.Texture;
+    backTexture?: THREE.Texture;
 }
 
-const BookPage = ({ index, isFlipped, onFlip, frontContent, backContent, totalLeaves }: BookPageProps) => {
+const BookPage = ({ index, isFlipped, flippedIndex, onFlip, frontContent, backContent, totalLeaves, frontTexture, backTexture }: BookPageProps) => {
     const groupRef = useRef<THREE.Group>(null);
+    const [isFrontFacing, setIsFrontFacing] = useState(!isFlipped);
 
     // Target rotation: 0 (right/closed) or -PI (left/open)
     const targetRotation = isFlipped ? -Math.PI : 0;
@@ -94,10 +108,17 @@ const BookPage = ({ index, isFlipped, onFlip, frontContent, backContent, totalLe
             // Smooth rotation
             const step = 5.0 * delta;
             const currentY = groupRef.current.rotation.y;
-            let newY = THREE.MathUtils.lerp(currentY, targetRotation, 0.15);
+            let newY = THREE.MathUtils.lerp(currentY, targetRotation, 0.1);
 
             if (Math.abs(newY - targetRotation) < 0.001) newY = targetRotation;
             groupRef.current.rotation.y = newY;
+
+            // Determine facing direction (cull back-facing content)
+            // Switch visibility at -PI/2 (90 degrees)
+            const frontFacing = newY > -Math.PI / 2;
+            if (frontFacing !== isFrontFacing) {
+                setIsFrontFacing(frontFacing);
+            }
 
             // Dynamic Z-indexing to avoid clipping
             // When closed (0), higher index = lower z (bottom of stack)
@@ -129,34 +150,58 @@ const BookPage = ({ index, isFlipped, onFlip, frontContent, backContent, totalLe
         }
     });
 
+    const isCover = index === 0;
+    const thickness = isCover ? COVER_THICKNESS : PAGE_THICKNESS;
+
+    // Determine materials for front and back faces
+    const material = isCover ? CoverMaterial : PageMaterial;
+
+    // Radius must be smaller than half the thickness to avoid artifacts
+    const radius = isCover ? 0.02 : 0.005;
+
+    const width = isCover ? COVER_WIDTH : PAGE_WIDTH;
+    const height = isCover ? COVER_HEIGHT : PAGE_HEIGHT;
+
+    // Only render content if this page is active or immediately adjacent (to handle flips)
+    // This prevents "bleed through" of HTML content from pages deep in the stack
+    const shouldRenderContent = Math.abs(index - flippedIndex) <= 1;
+
     return (
         <group
             ref={groupRef}
             position={[0, 0, 0]} // Pivot point at the spine (0,0,0)
-            onClick={(e) => {
-                e.stopPropagation();
-                onFlip();
-            }}
         >
             {/* FRONT OF PAGE (Visible when on Right) */}
-            <group position={[PAGE_WIDTH / 2, 0, 0]}>
-                <Box args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_THICKNESS]} material={index === 0 ? CoverMaterial : PageMaterial}>
+            <group position={[width / 2, 0, 0]}>
+                <RoundedBox args={[width, height, thickness]} radius={radius} smoothness={4} material={material}>
                     {/* Front Content */}
-                </Box>
-                {/* Overlay content */}
+                </RoundedBox>
+                {/* Overlay content - Only render if front facing */}
                 <group position={[0, 0, 0]}>
-                    {frontContent}
+                    {shouldRenderContent && isFrontFacing && frontContent}
+                    {index === 0 && frontTexture && (
+                        <mesh position={[0, 0, thickness / 2 + 0.001]}>
+                            <planeGeometry args={[width, height]} />
+                            <meshBasicMaterial map={frontTexture} toneMapped={false} />
+                        </mesh>
+                    )}
                 </group>
             </group>
 
             {/* BACK OF PAGE (Visible when on Left) */}
-            <group position={[PAGE_WIDTH / 2, 0, 0]} rotation={[0, Math.PI, 0]}>
-                <Box args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_THICKNESS]} material={index === 0 ? CoverMaterial : PageMaterial}>
+            <group position={[width / 2, 0, 0]} rotation={[0, Math.PI, 0]}>
+                <RoundedBox args={[width, height, thickness]} radius={radius} smoothness={4} material={material}>
                     {/* Back Content */}
-                </Box>
-                {/* Overlay content */}
+                </RoundedBox>
+                {/* Overlay content - Only render if NOT front facing (back facing) */}
                 <group position={[0, 0, 0]}>
-                    {backContent}
+                    {shouldRenderContent && !isFrontFacing && backContent}
+                    {index === totalLeaves - 1 && backTexture && (
+                        <mesh position={[0, 0, thickness / 2 + 0.001]} rotation={[0, Math.PI, 0]}>
+                            <planeGeometry args={[width, height]} />
+                            <meshBasicMaterial map={backTexture} toneMapped={false} />
+                        </mesh>
+                    )}
                 </group>
             </group>
         </group>
@@ -173,6 +218,15 @@ interface Book3DProps {
 }
 
 export default function Book3D({ pages, flippedIndex }: Book3DProps) {
+    // Load textures for cover
+    const [coverTexture, backCoverTexture] = useTexture(['/Cover.jpeg', '/BackCover.jpeg']);
+
+    // Fix color space for textures
+    coverTexture.colorSpace = THREE.SRGBColorSpace;
+    coverTexture.needsUpdate = true;
+    backCoverTexture.colorSpace = THREE.SRGBColorSpace;
+    backCoverTexture.needsUpdate = true;
+
     // We construct leaves from the pages prop.
     // Leaf 0: Front=Cover, Back=Page 0 Left
     // Leaf i (i>0): Front=Page (i-1) Right, Back=Page i Left
@@ -183,8 +237,9 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
 
         // Leaf 0: Cover / First Left
         generatedLeaves.push({
-            front: <CoverFront />,
-            back: <group position={[0, 0, 0.06]}>{pages[0]?.left}</group>
+            front: <group />, // No text on front cover
+            back: <group position={[0, 0, 0.06]}>{pages[0]?.left}</group>,
+            frontTexture: coverTexture,
         });
 
         // Middle Leaves
@@ -198,8 +253,8 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
                                 occlude
                                 position={[0, 0, 0]}
                                 style={{
-                                    width: '500px',
-                                    height: '660px',
+                                    width: '480px',
+                                    height: '640px',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
@@ -220,6 +275,7 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
             });
         }
 
+
         // Last Leaf: Last Right / Back Cover
         generatedLeaves.push({
             front: (
@@ -230,8 +286,8 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
                             occlude
                             position={[0, 0, 0]}
                             style={{
-                                width: '500px',
-                                height: '660px',
+                                width: '480px',
+                                height: '640px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
@@ -248,7 +304,8 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
                     )}
                 </group>
             ),
-            back: <PageContent title="THE END" text="Level Completed" align="center" color="#fff" />
+            back: <Box args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_THICKNESS]} material={CoverMaterial} />,
+            backTexture: backCoverTexture
         });
 
         return generatedLeaves;
@@ -257,23 +314,41 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
     return (
         <group position={[0, 0, 0]}>
             {/* Spine centered at 0,0,0 */}
+            <RoundedBox
+                args={[0.6, COVER_HEIGHT + 0.1, 0.2]}
+                radius={0.1}
+                smoothness={4}
+                position={[0, 0, -0.05]} // Moved up from -0.1
+                material={SpineMaterial}
+            />
 
             {/* Back Cover (Static Base) */}
-            <Box
-                args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_THICKNESS]}
-                position={[PAGE_WIDTH / 2, 0, -0.1]}
-                material={CoverMaterial}
-            />
+            <group position={[COVER_WIDTH / 2, 0, -0.02]}>
+                <RoundedBox
+                    args={[COVER_WIDTH, COVER_HEIGHT, COVER_THICKNESS]}
+                    radius={0.05}
+                    smoothness={4}
+                    material={CoverMaterial}
+                />
+                {/* Static Back Cover Image Plane */}
+                <mesh position={[0, 0, -COVER_THICKNESS / 2 - 0.001]} rotation={[0, Math.PI, 0]}>
+                    <planeGeometry args={[COVER_WIDTH, COVER_HEIGHT]} />
+                    <meshBasicMaterial map={backCoverTexture} toneMapped={false} />
+                </mesh>
+            </group>
 
             {leaves.map((leaf, i) => (
                 <BookPage
                     key={i}
                     index={i}
                     isFlipped={i <= flippedIndex}
+                    flippedIndex={flippedIndex} // Pass global flipped index
                     onFlip={() => { }} // Controlled by parent
                     frontContent={leaf.front}
                     backContent={leaf.back}
                     totalLeaves={leaves.length}
+                    frontTexture={leaf.frontTexture}
+                    backTexture={leaf.backTexture}
                 />
             ))}
         </group>

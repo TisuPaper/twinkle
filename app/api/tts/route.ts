@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
         const client = new ElevenLabsClient({ apiKey });
 
         // Generate audio using ElevenLabs
-        const audio = await client.textToSpeech.convert('21m00Tcm4TlvDq8ikWAM', {
+        // Voice ID: AZnzlk1XvdvUeBnXmlld (Domi - American Girl)
+        const audio = await client.textToSpeech.convert('AZnzlk1XvdvUeBnXmlld', {
             text,
             modelId: 'eleven_monolingual_v1',
         });

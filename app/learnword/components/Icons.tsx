@@ -26,3 +26,20 @@ export const PencilIcon = ({ className = "w-12 h-12" }: { className?: string }) 
         </svg>
     </div>
 );
+
+export const EraserIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <div className={`flex items-center justify-center ${className}`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-gray-700">
+            <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L18 15" />
+            <path d="M11 11L20 20" />
+        </svg>
+    </div>
+);
+
+export const CheckIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <div className={`flex items-center justify-center ${className}`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
+    </div>
+);

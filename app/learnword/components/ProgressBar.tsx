@@ -29,7 +29,7 @@ export default function ProgressBar({ level, chapterNumber, wordIndex, totalWord
                 <div className="flex justify-between items-center">
                     <div>
                         <span className={`inline-block text-2xl font-black ${levelColors[level]}`}>
-                            Chapter {chapterNumber}
+                            1
                         </span>
                     </div>
                     <div className="text-right">

@@ -1,18 +1,20 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import Button from './Button';
+import { PencilIcon, EraserIcon, CheckIcon } from './Icons';
 
 interface WordTracingProps {
     word: string;
     onComplete: () => void;
 }
 
-import { PencilIcon } from './Icons';
-
 export default function WordTracing({ word, onComplete }: WordTracingProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [visitedCount, setVisitedCount] = useState(0);
     const [strokes, setStrokes] = useState(0);
+    const visitedCells = useRef<Set<string>>(new Set());
     const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
 
     useEffect(() => {
@@ -34,44 +36,59 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
                 ctx.strokeText(word, canvas.width / 2, canvas.height / 2);
             }
         }
+        // Reset visited cells when word changes
+        visitedCells.current.clear();
+        setVisitedCount(0);
+        setStrokes(0);
     }, [word]);
 
-    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Also stop native propagation just in case
+        e.nativeEvent.stopImmediatePropagation();
+
         setIsDrawing(true);
         const canvas = canvasRef.current;
         if (!canvas || !context) return;
 
-        const rect = canvas.getBoundingClientRect();
-        let x, y;
+        // Capture pointer to track it even if it leaves canvas bounds
+        canvas.setPointerCapture(e.pointerId);
 
-        if ('touches' in e) {
-            x = e.touches[0].clientX - rect.left;
-            y = e.touches[0].clientY - rect.top;
-        } else {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
-        }
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
 
         context.beginPath();
         context.moveTo(x, y);
+
+        // Track initial point
+        const cellX = Math.floor(x / 20);
+        const cellY = Math.floor(y / 20);
+        const cellKey = `${cellX},${cellY}`;
+        if (!visitedCells.current.has(cellKey)) {
+            visitedCells.current.add(cellKey);
+            setVisitedCount(prev => prev + 1);
+        }
     };
 
-    const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+
         if (!isDrawing || !context) return;
 
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const rect = canvas.getBoundingClientRect();
-        let x, y;
-
-        if ('touches' in e) {
-            x = e.touches[0].clientX - rect.left;
-            y = e.touches[0].clientY - rect.top;
-        } else {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
-        }
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
 
         context.lineTo(x, y);
         context.strokeStyle = '#8b5cf6';
@@ -79,12 +96,29 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.stroke();
+
+        // Track visited cells (20x20 grid)
+        const cellX = Math.floor(x / 20);
+        const cellY = Math.floor(y / 20);
+        const cellKey = `${cellX},${cellY}`;
+        if (!visitedCells.current.has(cellKey)) {
+            visitedCells.current.add(cellKey);
+            setVisitedCount(prev => prev + 1);
+        }
     };
 
-    const stopDrawing = () => {
+    const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         if (isDrawing) {
             setIsDrawing(false);
             setStrokes(prev => prev + 1);
+
+            const canvas = canvasRef.current;
+            if (canvas) {
+                canvas.releasePointerCapture(e.pointerId);
+            }
         }
     };
 
@@ -102,12 +136,15 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
         context.textBaseline = 'middle';
         context.strokeText(word, canvas.width / 2, canvas.height / 2);
 
+        visitedCells.current.clear();
+        setVisitedCount(0);
         setStrokes(0);
     };
 
-    // Simple completion detection: require minimum strokes based on word length
-    const requiredStrokes = Math.max(word.length * 2, 5);
-    const progress = Math.min((strokes / requiredStrokes) * 100, 100);
+    // Completion detection: require covering a certain number of grid cells
+    // Heuristic: ~5 cells per character (easier)
+    const requiredCells = Math.max(word.length * 5, 10);
+    const progress = Math.min((visitedCount / requiredCells) * 100, 100);
 
     return (
         <div className="flex flex-col items-center justify-center p-0 space-y-4">
@@ -119,13 +156,11 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
             <div className="relative">
                 <canvas
                     ref={canvasRef}
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                    onTouchStart={startDrawing}
-                    onTouchMove={draw}
-                    onTouchEnd={stopDrawing}
+                    onPointerDown={startDrawing}
+                    onPointerMove={draw}
+                    onPointerUp={stopDrawing}
+                    onPointerLeave={stopDrawing}
+                    style={{ touchAction: 'none' }} // Critical for preventing scrolling on touch
                     className="border-4 border-white rounded-3xl bg-white/50 cursor-crosshair shadow-[0_8px_32px_0_rgba(31,38,135,0.1)]"
                 />
             </div>
@@ -144,19 +179,22 @@ export default function WordTracing({ word, onComplete }: WordTracingProps) {
             </div>
 
             <div className="flex gap-4">
-                <button
-                    onClick={clearCanvas}
-                    className="px-8 py-4 bg-gray-200 text-gray-600 rounded-2xl font-black shadow-[0_4px_0_0_rgba(156,163,175,1)] hover:shadow-[0_2px_0_0_rgba(156,163,175,1)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px] transition-all"
-                >
-                    Clear
-                </button>
-                <button
+                <Button onClick={clearCanvas} variant="secondary">
+                    <div className="flex items-center gap-2">
+                        <EraserIcon className="w-5 h-5" />
+                        <span>Clear</span>
+                    </div>
+                </Button>
+                <Button
                     onClick={onComplete}
                     disabled={progress < 100}
-                    className="px-8 py-4 bg-purple-500 text-white rounded-2xl font-black shadow-[0_4px_0_0_rgba(168,85,247,1)] hover:shadow-[0_2px_0_0_rgba(168,85,247,1)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                    style={{ opacity: 1, cursor: progress < 100 ? 'not-allowed' : 'pointer' }}
                 >
-                    Complete
-                </button>
+                    <div className="flex items-center gap-2">
+                        <CheckIcon className="w-5 h-5" />
+                        <span>Complete</span>
+                    </div>
+                </Button>
             </div>
         </div>
     );
