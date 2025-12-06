@@ -547,7 +547,7 @@ export default function Room() {
                     }} />
 
                     {/* Bookshelf Model - Always mounted but hidden via visible prop */}
-                    <group position={[0.8, -0.5, 0]} scale={0.65} visible={showBookshelf}>
+                    <group position={[0.8, -0.2, 0]} scale={0.65} visible={showBookshelf}>
                         <Center>
                             <group position={[4.0, 0, 0]} rotation={[0, -0.3, 0]}>
                                 <Float speed={1} rotationIntensity={0.2} floatIntensity={0.2}>
