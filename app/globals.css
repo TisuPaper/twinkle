@@ -58,8 +58,7 @@ body {
   animation-delay: 4s;
 }
 
-@keyframes float {
-  0% {
+
 @keyframes fadeIn {
   from {
     opacity: 0;
