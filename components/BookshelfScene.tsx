@@ -222,7 +222,7 @@ const Decoration: React.FC<DecorationProps> = ({ position, color, type = 'sphere
 
 
 const CartoonHand: React.FC<CartoonHandProps> = ({ position, rotation, side = 'left' }) => {
-    const handScale = 0.9;
+    const handScale = 0.6;
     const isLeft = side === 'left';
 
     // Finger common geometry (thicker)
@@ -297,9 +297,9 @@ const CartoonArm: React.FC<CartoonArmProps> = ({ position, side = 'left' }) => {
 
         return new THREE.CatmullRomCurve3([
             new THREE.Vector3(startX, 0, 0),        // Shoulder (attached to shelf)
-            new THREE.Vector3(cp1X, -0.8, 0.3),     // Elbow (Down and slightly out)
-            new THREE.Vector3(cp2X, -1.6, 0.3),     // Forearm
-            new THREE.Vector3(endX, -2.2, 0.5)      // Hand (Hanging lower but closer)
+            new THREE.Vector3(cp1X, -0.3, 0.3),     // Elbow (Down and slightly out)
+            new THREE.Vector3(cp2X, -0.6, 0.3),     // Forearm
+            new THREE.Vector3(endX, -0.9, 0.5)      // Hand (Hanging lower but closer)
         ]);
     }, [side]);
 
@@ -482,11 +482,11 @@ const CartoonEye: React.FC<CartoonEyeProps> = ({ position, rotation, side = 'lef
 
 const Bookshelf: React.FC = () => {
     // Shelf dimensions
-    const width = 4;
-    const height = 6;
+    const width = 3.5;
+    const height = 4;
     const depth = 1.5;
     const thickness = 0.2;
-    const shelfCount = 3; // Number of spaces (books sit in these spaces)
+    const shelfCount = 2; // Number of spaces (books sit in these spaces)
 
     const woodTexture = useTexture('/wood_color.png');
 
@@ -587,14 +587,14 @@ const Bookshelf: React.FC = () => {
     const backboardRepeat: [number, number] = [1, 1]; // Big surface
 
     return (
-        <group>
+        <group position={[0, 0.5, 0]}>
             {/* Eyes - Top of the shelf */}
             <CartoonEye side="left" position={[-0.4, height / 2 + 0.4, depth / 2]} rotation={[0, 0, -0.1]} />
             <CartoonEye side="right" position={[0.4, height / 2 + 0.4, depth / 2]} rotation={[0, 0, 0.1]} />
 
             {/* Arms */}
-            <CartoonArm side="left" position={[-width / 2, 1, 0]} />
-            <CartoonArm side="right" position={[width / 2, 1, 0]} />
+            <CartoonArm side="left" position={[-width / 2, 0, 0]} />
+            <CartoonArm side="right" position={[width / 2, 0, 0]} />
 
             {/* Legs */}
             <CartoonLeg side="left" position={[-1, -height / 2, 0]} />
@@ -700,7 +700,7 @@ export const BookshelfSceneContent: React.FC<BookshelfSceneContentProps> = ({
             <BookshelfEnvironment showShadows={showShadows} />
 
             <Center>
-                <group position={[4.0, 0, 0]} rotation={[0, -0.3, 0]}>
+                <group position={[4.0, 2.0, 0]} rotation={[0, -0.3, 0]}>
                     <Float speed={1} rotationIntensity={0.2} floatIntensity={0.2}>
                         <Bookshelf />
                     </Float>
