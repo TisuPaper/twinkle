@@ -223,10 +223,10 @@ export default function GamePage() {
 
     // Quiz Configuration
     const quiz = {
-        question: "1 + 2",
+        question: "Which is the correct spelling of jump?",
         answers: [
-            { text: "4", lane: -1, isCorrect: false }, // Left
-            { text: "3", lane: 1, isCorrect: true },   // Right
+            { text: "gump", lane: -1, isCorrect: false }, // Left
+            { text: "jump", lane: 1, isCorrect: true },   // Right
         ],
         zDistance: -50 // Distance where the gates are located
     };

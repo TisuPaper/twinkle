@@ -20,7 +20,7 @@ const CoverMaterial = new THREE.MeshBasicMaterial({
 });
 
 const PageMaterial = new THREE.MeshStandardMaterial({
-    color: '#f5f5f0f1', // Slightly gray paper color
+    color: '#f5f5f0', // Slightly gray paper color
     roughness: 0.9,
     metalness: 0.0,
 });

@@ -56,7 +56,7 @@ export function HelloKittyModel({ autoJump = false, isTalking = false, speechTex
 
     // ... (load model code) ...
     const fbx = useFBX('/hellokitty/helloModel/base_basic_shaded.fbx');
-    const { animations: runAnimations } = useFBX('/hellokitty/helloModel/Fast Run.fbx');
+    const { animations: runAnimations } = useFBX('/hellokitty/helloModel/FastRun-2.fbx');
 
     // Setup Animation
     if (runAnimations.length > 0) {
