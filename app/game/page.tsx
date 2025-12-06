@@ -110,28 +110,94 @@ function AnswerGate({
     );
 }
 
-import { Tree } from '@/components/garden/Tree';
+function GameTree({ position }: { position: [number, number, number] }) {
+    const fbx = useFBX('/gardenAssets/tree3d.fbx');
+    const clone = useMemo(() => fbx.clone(), [fbx]);
+    return <primitive object={clone} position={position} scale={0.05} />;
+}
+
+function Mushroom({ position }: { position: [number, number, number] }) {
+    const fbx = useFBX('/gardenAssets/mushroom.fbx');
+    const clone = useMemo(() => fbx.clone(), [fbx]);
+    return <primitive object={clone} position={position} scale={0.05} />;
+}
+
+function Grass3D({ position }: { position: [number, number, number] }) {
+    const fbx = useFBX('/gardenAssets/grass3d.fbx');
+    const clone = useMemo(() => fbx.clone(), [fbx]);
+    return <primitive object={clone} position={position} scale={0.02} />;
+}
+
+function Rock({ position, scale = 1, rotation = [0, 0, 0] }: { position: [number, number, number], scale?: number, rotation?: [number, number, number] }) {
+    return (
+        <mesh position={position} scale={scale} rotation={rotation} castShadow receiveShadow>
+            <dodecahedronGeometry args={[0.5, 0]} />
+            <meshStandardMaterial color="#888888" roughness={0.8} />
+        </mesh>
+    );
+}
 
 function BeachEnvironment() {
     const sandTexture = useTexture('/hellokitty/sand.png');
+    const grassTexture = useTexture('/gardenAssets/grasstexture.png');
 
     // Configure texture repeating
     sandTexture.wrapS = THREE.RepeatWrapping;
     sandTexture.wrapT = THREE.RepeatWrapping;
     sandTexture.repeat.set(1, 100); // Adjust repeat based on length
 
+    grassTexture.wrapS = THREE.RepeatWrapping;
+    grassTexture.wrapT = THREE.RepeatWrapping;
+    grassTexture.repeat.set(20, 100); // Tile the grass
+
     // Generate some random decorations along the track
     const decorations = useMemo(() => {
         const items = [];
-        for (let z = 0; z > -1000; z -= 10) {
-            // Left side trees
+        for (let z = 0; z > -800; z -= 30) { // Reduced density (was 10) and distance (was -1000)
+            // Left side decorations (Trees, Mushrooms, Grass)
             if (Math.random() > 0.3) {
-                items.push(<Tree key={`l-${z}`} position={[-5 - Math.random() * 5, 0, z]} />);
+                const rand = Math.random();
+                let Component;
+                if (rand < 0.33) Component = GameTree;
+                else if (rand < 0.66) Component = Mushroom;
+                else Component = Grass3D;
+
+                items.push(<Component key={`l-${z}`} position={[-8 - Math.random() * 10, 0, z]} />);
             }
 
-            // Right side trees
+            // Right side decorations (Trees, Mushrooms, Grass)
             if (Math.random() > 0.3) {
-                items.push(<Tree key={`r-${z}`} position={[5 + Math.random() * 5, 0, z]} />);
+                const rand = Math.random();
+                let Component;
+                if (rand < 0.33) Component = GameTree;
+                else if (rand < 0.66) Component = Mushroom;
+                else Component = Grass3D;
+
+                items.push(<Component key={`r-${z}`} position={[8 + Math.random() * 10, 0, z]} />);
+            }
+
+            // Rocks along the runway border
+            // Left border (approx x = -4.5)
+            if (Math.random() > 0.4) {
+                items.push(
+                    <Rock
+                        key={`rock-l-${z}`}
+                        position={[-4.5 - Math.random() * 0.5, -0.2, z + Math.random() * 5]}
+                        scale={3 + Math.random() * 2} // Increased scale (was 0.5 + ...)
+                        rotation={[Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI]}
+                    />
+                );
+            }
+            // Right border (approx x = 4.5)
+            if (Math.random() > 0.4) {
+                items.push(
+                    <Rock
+                        key={`rock-r-${z}`}
+                        position={[4.5 + Math.random() * 0.5, -0.2, z + Math.random() * 5]}
+                        scale={3 + Math.random() * 2} // Increased scale (was 0.5 + ...)
+                        rotation={[Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI]}
+                    />
+                );
             }
         }
         return items;
@@ -139,10 +205,10 @@ function BeachEnvironment() {
 
     return (
         <group>
-            {/* Sand Ground (Base) */}
+            {/* Grass Ground (Base) */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, -500]} receiveShadow>
                 <planeGeometry args={[200, 1000]} />
-                <meshStandardMaterial color="#4caf50" />
+                <meshStandardMaterial map={grassTexture} />
             </mesh>
 
             {/* Runway with Sand Texture */}
