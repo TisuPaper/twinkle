@@ -50,7 +50,7 @@ declare module "@react-three/fiber" {
 // --- 2. ANIMATION HELPERS ---
 
 // Helper for Top Text (Letter by Letter Wipe)
-const DelayedRevealText = ({ position, children, delay = 0, start = false, ...props }: any) => {
+const DelayedRevealText = ({ position, children, delay = 0, start = false, exiting = false, ...props }: any) => {
     const materialRef = useRef<any>(null);
     // State to track when the animation should logically start (after 'start' is true)
     const [startTime, setStartTime] = useState<number | null>(null);
@@ -61,8 +61,16 @@ const DelayedRevealText = ({ position, children, delay = 0, start = false, ...pr
 
         if (materialRef.current && startTime !== null) {
             const elapsed = state.clock.elapsedTime - startTime;
-            // Only start animating AFTER the delay (relative to when 'start' was true)
-            if (elapsed > delay) {
+
+            if (exiting) {
+                // Wipe back to hidden
+                materialRef.current.uProgress = THREE.MathUtils.lerp(
+                    materialRef.current.uProgress,
+                    0.0,
+                    delta * 1.5
+                );
+            } else if (elapsed > delay) {
+                // Wipe to visible
                 materialRef.current.uProgress = THREE.MathUtils.lerp(
                     materialRef.current.uProgress,
                     1.1,
@@ -89,7 +97,7 @@ const DelayedRevealText = ({ position, children, delay = 0, start = false, ...pr
 };
 
 // Helper for HTML Button (Simple Fade In after delay)
-const DelayedHtml = ({ position, children, delay = 0, start = false, ...props }: any) => {
+const DelayedHtml = ({ position, children, delay = 0, start = false, exiting = false, ...props }: any) => {
     const groupRef = useRef<any>(null);
     const divRef = useRef<HTMLDivElement>(null);
     const [startTime, setStartTime] = useState<number | null>(null);
@@ -101,7 +109,14 @@ const DelayedHtml = ({ position, children, delay = 0, start = false, ...props }:
         if (divRef.current && startTime !== null) {
             const elapsed = state.clock.elapsedTime - startTime;
 
-            if (elapsed > delay) {
+            if (exiting) {
+                // Fade out immediately when exiting
+                if (divRef.current.style.opacity !== '0') {
+                    divRef.current.style.opacity = '0';
+                    divRef.current.style.pointerEvents = 'none';
+                    divRef.current.style.transition = 'opacity 1s ease-out';
+                }
+            } else if (elapsed > delay) {
                 const timeSinceStart = elapsed - delay;
                 // Fade in over 1 second
                 const opacity = Math.min(timeSinceStart * 1.0, 1);
@@ -167,15 +182,42 @@ const PanoBackground = ({ url }: { url: string }) => {
 // --- 5. THE SCENE ---
 interface SceneProps {
     start: boolean; // ADDED: Prop to synchronize R3F animations
+    onStartJourney?: () => void; // ADDED: Callback for zoom/transition
 }
 
-const ThreeScene: React.FC<SceneProps> = ({ start }) => {
+// Separate component for zoom logic since useFrame must be inside Canvas
+const ZoomRig = ({ active }: { active: boolean }) => {
+    useFrame((state) => {
+        if (active) {
+            const camera = state.camera as THREE.PerspectiveCamera;
+            // Smoothly interpolate FOV from 50 (default) to 30 (zoomed in)
+            camera.fov = THREE.MathUtils.lerp(camera.fov, 30, 0.05);
+            camera.updateProjectionMatrix();
+        }
+    });
+    return null;
+};
+
+const ThreeScene: React.FC<SceneProps> = ({ start, onStartJourney }) => {
     // Configuration for the sequence
     const SEQUENCE_DELAY = 1; // Time to wait before Top Text & Button appear
-    const router = useRouter();
+    const [isZooming, setIsZooming] = useState(false);
+    const [isExiting, setIsExiting] = useState(false); // ADDED: Track fade out state
 
     const handleStartJourney = () => {
-        router.push('/experience');
+        // 1. Trigger fade out of components
+        setIsExiting(true);
+
+        // 2. Wait for fade out (approx 2000ms), THEN start zooming
+        setTimeout(() => {
+            setIsZooming(true);
+
+            // 3. Wait for zoom to progress (approx 1000ms), THEN open ChatBox
+            setTimeout(() => {
+                if (onStartJourney) onStartJourney();
+            }, 1000);
+
+        }, 2000); // 2.0s delay for components to clear completely
     };
 
     return (
@@ -186,6 +228,8 @@ const ThreeScene: React.FC<SceneProps> = ({ start }) => {
                 <Suspense fallback={null}>
                     <PanoBackground url={encodeURI("/World1_pano.png")} />
                     <GlobalCameraRig />
+                    {/* Add ZoomRig inside Canvas */}
+                    <ZoomRig active={isZooming} />
                 </Suspense>
 
                 <Suspense fallback={null}>
@@ -200,6 +244,7 @@ const ThreeScene: React.FC<SceneProps> = ({ start }) => {
                             anchorY="middle"
                             delay={SEQUENCE_DELAY}
                             start={start}
+                            exiting={isExiting}
                         >
                             A NEW WAY TO LEARN
                         </DelayedRevealText>
@@ -212,6 +257,7 @@ const ThreeScene: React.FC<SceneProps> = ({ start }) => {
                             size={0.7}
                             fontUrl="/fonts/PlayfairDisplay-Italic-VariableFont_wght.ttf"
                             start={start}
+                            exiting={isExiting}
                         />
 
                         <ParticleText
@@ -220,6 +266,7 @@ const ThreeScene: React.FC<SceneProps> = ({ start }) => {
                             size={0.7}
                             fontUrl="/fonts/PlayfairDisplay-VariableFont_wght.ttf"
                             start={start}
+                            exiting={isExiting}
                         />
 
                         {/* 3. ANIMATED BUTTON (Delayed) */}
@@ -229,6 +276,7 @@ const ThreeScene: React.FC<SceneProps> = ({ start }) => {
                             transform
                             delay={SEQUENCE_DELAY}
                             start={start}
+                            exiting={isExiting}
                         >
                             <HoverButton onClick={handleStartJourney}>
                                 Start Journey
