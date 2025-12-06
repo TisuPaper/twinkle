@@ -25,22 +25,29 @@ function Player({
     active: boolean
 }) {
     const group = useRef<THREE.Group>(null);
-    // Load Model and Animation
-    const fbx = useFBX('/hellokitty/helloModel/base_basic_shaded.fbx');
-    const { animations: runAnimations } = useFBX('/hellokitty/helloModel/Fast Run.fbx');
+    // Load Model and Animation from the same file
+    const fbx = useFBX('/hellokitty/helloModel/FastRun-2.fbx');
 
-    // Setup Animation
-    if (runAnimations.length > 0) {
-        runAnimations[0].name = 'Run';
-    }
-    const { actions } = useAnimations(runAnimations, group);
+    // Extract animations from the loaded FBX
+    const { actions } = useAnimations(fbx.animations, group);
 
     useEffect(() => {
-        const action = actions['Run'];
-        if (action) action.reset().fadeIn(0.5).play();
-        return () => {
-            action?.fadeOut(0.5);
-        };
+        // Play the first animation available
+        if (actions) {
+            const actionName = Object.keys(actions)[0];
+            const action = actions[actionName];
+
+            if (action) {
+                // Fix: Remove position tracks to prevent root motion (snapping back)
+                const clip = action.getClip();
+                clip.tracks = clip.tracks.filter(track => !track.name.includes('.position'));
+
+                action.reset().fadeIn(0.5).play();
+            }
+            return () => {
+                action?.fadeOut(0.5);
+            };
+        }
     }, [actions]);
 
     useFrame((state, delta) => {
@@ -69,7 +76,7 @@ function Player({
 
     return (
         <group ref={group} dispose={null} scale={0.01}>
-            <primitive object={fbx} />
+            <primitive object={fbx} rotation={[0, Math.PI, 0]} />
         </group>
     );
 }
@@ -111,54 +118,7 @@ function AnswerGate({
     );
 }
 
-function SimpleUmbrella({ position }: { position: [number, number, number] }) {
-    return (
-        <group position={position} rotation={[0, Math.random() * Math.PI, 0]}>
-            {/* Pole */}
-            <mesh position={[0, 1.5, 0]} castShadow>
-                <cylinderGeometry args={[0.05, 0.05, 3]} />
-                <meshStandardMaterial color="#8B4513" />
-            </mesh>
-            {/* Top */}
-            <mesh position={[0, 2.8, 0]} castShadow>
-                <coneGeometry args={[1.5, 1, 8]} />
-                <meshStandardMaterial color="#FFD700" />
-            </mesh>
-        </group>
-    );
-}
-
-function PalmTree({ position }: { position: [number, number, number] }) {
-    return (
-        <group position={position} rotation={[0, Math.random() * Math.PI, 0]}>
-            {/* Trunk */}
-            <mesh position={[0, 2, 0]} castShadow>
-                <cylinderGeometry args={[0.3, 0.5, 4]} />
-                <meshStandardMaterial color="#8B4513" />
-            </mesh>
-            {/* Leaves */}
-            <mesh position={[0, 4, 0]} castShadow>
-                <dodecahedronGeometry args={[1.5]} />
-                <meshStandardMaterial color="#228B22" />
-            </mesh>
-        </group>
-    );
-}
-
-function Rock({ position }: { position: [number, number, number] }) {
-    const scale = 1 + Math.random();
-    return (
-        <mesh
-            position={position}
-            rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}
-            scale={[scale, scale * 0.6, scale]}
-            castShadow
-        >
-            <dodecahedronGeometry args={[0.8, 0]} />
-            <meshStandardMaterial color="#808080" roughness={0.9} />
-        </mesh>
-    );
-}
+import { Tree } from '@/components/garden/Tree';
 
 function BeachEnvironment() {
     const sandTexture = useTexture('/hellokitty/sand.png');
@@ -171,22 +131,15 @@ function BeachEnvironment() {
     // Generate some random decorations along the track
     const decorations = useMemo(() => {
         const items = [];
-        for (let z = 0; z > -1000; z -= 15) {
-            // Rock Border (Left)
-            items.push(<Rock key={`rock-l-${z}`} position={[-5, 0, z + Math.random() * 5]} />);
-            // Rock Border (Right)
-            items.push(<Rock key={`rock-r-${z}`} position={[5, 0, z + Math.random() * 5]} />);
-
-            // Left side decorations (further out)
+        for (let z = 0; z > -1000; z -= 10) {
+            // Left side trees
             if (Math.random() > 0.3) {
-                const Type = Math.random() > 0.5 ? SimpleUmbrella : PalmTree;
-                items.push(<Type key={`l-${z}`} position={[-8 - Math.random() * 10, 0, z]} />);
+                items.push(<Tree key={`l-${z}`} position={[-5 - Math.random() * 5, 0, z]} />);
             }
 
-            // Right side decorations (further out)
+            // Right side trees
             if (Math.random() > 0.3) {
-                const Type = Math.random() > 0.5 ? SimpleUmbrella : PalmTree;
-                items.push(<Type key={`r-${z}`} position={[8 + Math.random() * 10, 0, z]} />);
+                items.push(<Tree key={`r-${z}`} position={[5 + Math.random() * 5, 0, z]} />);
             }
         }
         return items;
@@ -197,7 +150,7 @@ function BeachEnvironment() {
             {/* Sand Ground (Base) */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, -500]} receiveShadow>
                 <planeGeometry args={[200, 1000]} />
-                <meshStandardMaterial color="#f2d2a9" />
+                <meshStandardMaterial color="#4caf50" />
             </mesh>
 
             {/* Runway with Sand Texture */}
@@ -216,10 +169,57 @@ function BeachEnvironment() {
     );
 }
 
+
+function StartScreen({ onStart }: { onStart: () => void }) {
+    return (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600 mb-6">
+                    Math Runner
+                </h1>
+                <p className="text-slate-600 mb-8 text-lg font-medium">Solve the math, choose the lane!</p>
+                <button
+                    onClick={onStart}
+                    className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xl font-bold rounded-full shadow-lg hover:scale-105 hover:shadow-xl transition-all active:scale-95"
+                >
+                    Start Game
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function GameOverScreen({ result, onRestart }: { result: 'correct' | 'wrong', onRestart: () => void }) {
+    const isWin = result === 'correct';
+    return (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md">
+            <div className="bg-white p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-in fade-in zoom-in duration-300 text-center">
+                <div className="text-6xl mb-4">
+                    {isWin ? '🎉' : '💥'}
+                </div>
+                <h2 className={`text-4xl font-black mb-2 ${isWin ? 'text-green-500' : 'text-red-500'}`}>
+                    {isWin ? 'Correct!' : 'Wrong Answer!'}
+                </h2>
+                <p className="text-slate-500 mb-8 text-lg">
+                    {isWin ? 'Great job! Keep running!' : 'Oops! Better luck next time.'}
+                </p>
+                <button
+                    onClick={onRestart}
+                    className={`px-8 py-4 text-white text-xl font-bold rounded-full shadow-lg hover:scale-105 hover:shadow-xl transition-all active:scale-95 ${isWin ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                        }`}
+                >
+                    Play Again
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function GamePage() {
     const [lane, setLane] = useState<Lane>(0);
     const [playerZ, setPlayerZ] = useState(0);
     const [gameState, setGameState] = useState<'menu' | 'playing' | 'correct' | 'wrong'>('menu');
+    const [gameId, setGameId] = useState(0); // Used to reset the scene
 
     // Quiz Configuration
     const quiz = {
@@ -229,6 +229,17 @@ export default function GamePage() {
             { text: "3", lane: 1, isCorrect: true },   // Right
         ],
         zDistance: -50 // Distance where the gates are located
+    };
+
+    const startGame = () => {
+        setGameState('playing');
+    };
+
+    const resetGame = () => {
+        setGameId(prev => prev + 1);
+        setLane(0);
+        setPlayerZ(0);
+        setGameState('playing'); // Restart immediately
     };
 
     // Handle Input
@@ -281,6 +292,12 @@ export default function GamePage() {
                 </div>
             </div>
 
+            {/* Screens */}
+            {gameState === 'menu' && <StartScreen onStart={startGame} />}
+            {(gameState === 'correct' || gameState === 'wrong') && (
+                <GameOverScreen result={gameState} onRestart={resetGame} />
+            )}
+
             {/* Controls Hint */}
             <div className="absolute bottom-8 left-0 w-full text-center z-10 pointer-events-none">
                 <p className="text-white/80 text-sm font-mono font-bold drop-shadow-md">Press 'A' to move Left • Press 'D' to move Right</p>
@@ -297,22 +314,25 @@ export default function GamePage() {
                 />
                 <Environment preset="sunset" />
 
-                <Player lane={lane} setZPosition={setPlayerZ} active={gameState === 'playing'} />
+                {/* Game Content - Reset on gameId change */}
+                <group key={gameId}>
+                    <Player lane={lane} setZPosition={setPlayerZ} active={gameState === 'playing'} />
+                    <BeachEnvironment />
 
-                <BeachEnvironment />
-
-                {/* Render Answer Gates */}
-                {quiz.answers.map((ans, i) => (
-                    <AnswerGate
-                        key={i}
-                        position={[ans.lane * LANE_WIDTH, 0, quiz.zDistance]}
-                        text={ans.text}
-                        color={ans.isCorrect ? "#4ade80" : "#f87171"}
-                    />
-                ))}
+                    {/* Render Answer Gates */}
+                    {quiz.answers.map((ans, i) => (
+                        <AnswerGate
+                            key={i}
+                            position={[ans.lane * LANE_WIDTH, 0, quiz.zDistance]}
+                            text={ans.text}
+                            color={ans.isCorrect ? "#4ade80" : "#f87171"}
+                        />
+                    ))}
+                </group>
 
                 <fog attach="fog" args={['#87CEEB', 20, 100]} />
             </Canvas>
         </div>
     );
 }
+
