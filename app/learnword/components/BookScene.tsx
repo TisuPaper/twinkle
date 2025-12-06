@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import Book3D from "./Book3D";
 import { HelloKittyModel } from "./HelloKitty3D";
 
+import { LearningStep } from "../types";
+
 interface BookSceneProps {
     pages?: {
         left: React.ReactNode;
@@ -12,9 +14,11 @@ interface BookSceneProps {
     }[];
     flippedIndex?: number;
     isLevelComplete?: boolean;
+    isSuccess?: boolean;
+    currentStep?: LearningStep;
 }
 
-export const BookScene = ({ pages = [], flippedIndex = 0, isLevelComplete = false }: BookSceneProps) => {
+export const BookScene = ({ pages = [], flippedIndex = 0, isLevelComplete = false, isSuccess = false, currentStep = 'SHOW' }: BookSceneProps) => {
     const group = useRef<any>(null);
     const [started, setStarted] = useState(false);
 
@@ -50,11 +54,11 @@ export const BookScene = ({ pages = [], flippedIndex = 0, isLevelComplete = fals
                 </group>
             )}
 
-            <OrbitControls />
+            <OrbitControls enablePan={false} enableZoom={false} />
             <Environment preset="studio"></Environment>
             <directionalLight
                 position={[2, 5, 2]}
-                intensity={2.5}
+                intensity={isLevelComplete ? 4.0 : 2.5} // Brighten lights on level complete
                 castShadow
                 shadow-mapSize-width={2048}
                 shadow-mapSize-height={2048}

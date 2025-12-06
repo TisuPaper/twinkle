@@ -14,25 +14,60 @@ const Z_GAP = 0.06; // Gap between pages to prevent z-fighting
 const COVER_THICKNESS = 0.15;
 
 // --- Materials ---
-const CoverMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color('#97d2ee'), // Light blue to match cover image background
-    toneMapped: false,
+// Helper to create notebook texture
+function createNotebookTexture(side: 'left' | 'right') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return new THREE.CanvasTexture(canvas);
+
+    // Background
+    ctx.fillStyle = '#fffdf5';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Blue horizontal lines
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 2;
+    const lineHeight = 40;
+    for (let y = lineHeight; y < canvas.height; y += lineHeight) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    // Red vertical line
+    ctx.strokeStyle = '#ffcccc';
+    ctx.lineWidth = 2;
+    const marginX = side === 'left' ? canvas.width - 60 : 60; // Right side for left page, Left side for right page
+    ctx.beginPath();
+    ctx.moveTo(marginX, 0);
+    ctx.lineTo(marginX, canvas.height);
+    ctx.stroke();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+}
+
+const CoverMaterial = new THREE.MeshStandardMaterial({
+    color: '#f3dd9cff', // Beige to match inner pages
+    roughness: 0.8,
 });
 
 const PageMaterial = new THREE.MeshStandardMaterial({
-    color: '#f5f5f0', // Slightly gray paper color
-    roughness: 0.9,
+    color: '#fff9df',
+    roughness: 0.5,
     metalness: 0.0,
 });
 
 const SpineMaterial = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#97d2ee'), // Light blue
-    roughness: 0.2,
-    metalness: 0.1,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.1,
-    transparent: true,
-    opacity: 0.9,
+    color: new THREE.Color('#2d2d2d'),
+    roughness: 0.8,
+    metalness: 0.5,
+    clearcoat: 0.0,
+    transparent: false,
 });
 
 // --- Content Components ---
@@ -179,10 +214,11 @@ const BookPage = ({ index, isFlipped, flippedIndex, onFlip, frontContent, backCo
                 {/* Overlay content - Only render if front facing */}
                 <group position={[0, 0, 0]}>
                     {shouldRenderContent && isFrontFacing && frontContent}
-                    {index === 0 && frontTexture && (
+                    {/* Render texture if provided, otherwise use material */}
+                    {frontTexture && (
                         <mesh position={[0, 0, thickness / 2 + 0.001]}>
                             <planeGeometry args={[width, height]} />
-                            <meshBasicMaterial map={frontTexture} toneMapped={false} />
+                            <meshBasicMaterial map={frontTexture} toneMapped={false} transparent={true} />
                         </mesh>
                     )}
                 </group>
@@ -196,10 +232,10 @@ const BookPage = ({ index, isFlipped, flippedIndex, onFlip, frontContent, backCo
                 {/* Overlay content - Only render if NOT front facing (back facing) */}
                 <group position={[0, 0, 0]}>
                     {shouldRenderContent && !isFrontFacing && backContent}
-                    {index === totalLeaves - 1 && backTexture && (
-                        <mesh position={[0, 0, thickness / 2 + 0.001]} rotation={[0, Math.PI, 0]}>
+                    {backTexture && (
+                        <mesh position={[0, 0, thickness / 2 + 0.001]}>
                             <planeGeometry args={[width, height]} />
-                            <meshBasicMaterial map={backTexture} toneMapped={false} />
+                            <meshBasicMaterial map={backTexture} toneMapped={false} transparent={true} />
                         </mesh>
                     )}
                 </group>
@@ -219,13 +255,16 @@ interface Book3DProps {
 
 export default function Book3D({ pages, flippedIndex }: Book3DProps) {
     // Load textures for cover
-    const [coverTexture, backCoverTexture] = useTexture(['/Cover.jpeg', '/BackCover.jpeg']);
+    const [coverTexture] = useTexture(['/image.png']);
+    const backCoverTexture = coverTexture; // Use same texture for back
 
     // Fix color space for textures
     coverTexture.colorSpace = THREE.SRGBColorSpace;
     coverTexture.needsUpdate = true;
-    backCoverTexture.colorSpace = THREE.SRGBColorSpace;
-    backCoverTexture.needsUpdate = true;
+
+    // Generate Notebook Textures
+    const leftPageTexture = React.useMemo(() => createNotebookTexture('left'), []);
+    const rightPageTexture = React.useMemo(() => createNotebookTexture('right'), []);
 
     // We construct leaves from the pages prop.
     // Leaf 0: Front=Cover, Back=Page 0 Left
@@ -240,6 +279,7 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
             front: <group />, // No text on front cover
             back: <group position={[0, 0, 0.06]}>{pages[0]?.left}</group>,
             frontTexture: coverTexture,
+            // backTexture: leftPageTexture, // REMOVED: User wants plain beige inner cover
         });
 
         // Middle Leaves
@@ -271,7 +311,9 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
                         )}
                     </group>
                 ),
-                back: <group position={[0, 0, 0.06]}>{pages[i]?.left}</group>
+                back: <group position={[0, 0, 0.06]}>{pages[i]?.left}</group>,
+                frontTexture: rightPageTexture, // Notebook texture for right pages
+                backTexture: leftPageTexture, // Notebook texture for left pages
             });
         }
 
@@ -304,12 +346,13 @@ export default function Book3D({ pages, flippedIndex }: Book3DProps) {
                     )}
                 </group>
             ),
-            back: <Box args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_THICKNESS]} material={CoverMaterial} />,
-            backTexture: backCoverTexture
+            back: <group />, // Back cover
+            frontTexture: rightPageTexture, // Notebook texture for last right page
+            backTexture: backCoverTexture,
         });
 
         return generatedLeaves;
-    }, [pages]);
+    }, [pages, coverTexture, backCoverTexture, leftPageTexture, rightPageTexture]);
 
     return (
         <group position={[0, 0, 0]}>

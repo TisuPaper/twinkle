@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Loader } from '@react-three/drei';
+import { Loader, Html } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import { validateLearnWordData, processToChapters } from './processor';
 import { mockAIResult } from './data';
@@ -14,6 +14,7 @@ import { SpeakerIcon } from './components/Icons';
 import { HelloKittyModel } from './components/HelloKitty3D';
 import { BookScene } from './components/BookScene';
 import { BookPageLayout } from './components/BookPageLayout';
+import confetti from 'canvas-confetti';
 
 
 export default function LearnWordPage() {
@@ -86,6 +87,32 @@ export default function LearnWordPage() {
             return () => clearTimeout(timer);
         }
     }, [currentStep, state]);
+
+    // Trigger confetti on level complete
+    useEffect(() => {
+        if (isLevelComplete) {
+            const duration = 3 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+            const interval: any = setInterval(function () {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+                // since particles fall down, start a bit higher than random
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+            }, 250);
+
+            return () => clearInterval(interval);
+        }
+    }, [isLevelComplete]);
 
     const getCurrentLevel = () => state?.levels[state.currentLevelIndex];
     const getCurrentWord = () => {
@@ -202,7 +229,13 @@ export default function LearnWordPage() {
         playAudio(getCurrentWord(), false); // Replay uses regular audio
     };
 
+    const [isSuccess, setIsSuccess] = useState(false);
+
     const handleStepComplete = () => {
+        // Trigger success state for camera zoom
+        setIsSuccess(true);
+        setTimeout(() => setIsSuccess(false), 2000); // Zoom out after 2 seconds
+
         if (currentStep === 'REPLAY') {
             playFeedback("Wow you did it well! Now let’s try to speak");
             setCurrentStep('SPEAK');
@@ -296,37 +329,40 @@ export default function LearnWordPage() {
 
         // Page 1: Listen (SHOW/REPLAY)
         const listenContent = (
-            <div className="text-center">
-                <div className="flex justify-center mb-6">
-                    <SpeakerIcon className="w-24 h-24" />
+            <div className="text-center relative">
+                {/* Washi Tape Header */}
+                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 -rotate-1 bg-[#fde047] px-8 py-2 shadow-sm z-20"
+                    style={{
+                        clipPath: 'polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%)',
+                        maskImage: 'linear-gradient(90deg, transparent 0%, black 2%, black 98%, transparent 100%)'
+                    }}>
+                    <div className="absolute left-0 top-0 bottom-0 w-2 bg-white/20 border-r border-white/40 border-dashed"></div>
+                    <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/20 border-l border-white/40 border-dashed"></div>
+                    <h2 className="text-2xl font-bold text-[#5D4037] font-['Comic_Sans_MS','Chalkboard_SE','sans-serif'] tracking-wide">Listen to the word</h2>
                 </div>
-                <h2 className="text-3xl font-bold text-gray-800">Listen to the word</h2>
-                <WordDisplay
-                    word={wordData.word}
-                    onReplay={handleReplay}
-                    canReplay={isCurrentWord ? (currentStep === 'REPLAY' ? !audioPlaying : audioBlocked) : false}
-                />
+
+                <div className="flex justify-center mb-2 mt-6 transform rotate-2">
+                    <div className="bg-white p-4 rounded-full shadow-lg border-4 border-[#FF6B6B]">
+                        <SpeakerIcon className="w-20 h-20 text-[#FF6B6B]" />
+                    </div>
+                </div>
+
+                <div className="transform -rotate-1">
+                    <WordDisplay
+                        word={wordData.word}
+                        onReplay={handleReplay}
+                        canReplay={isCurrentWord ? (currentStep === 'REPLAY' ? !audioPlaying : audioBlocked) : false}
+                        isPlaying={isCurrentWord && audioPlaying}
+                    />
+                </div>
 
                 {isCurrentWord && currentStep === 'SHOW' && audioPlaying && (
-                    <div className="mt-8 flex justify-center">
-                        <div className="flex items-center gap-3 text-purple-600">
-                            <div className="w-4 h-4 bg-purple-600 rounded-full animate-pulse"></div>
-                            <span className="text-xl font-semibold">Playing audio...</span>
+                    <div className="mt-4 flex justify-center">
+                        <div className="flex items-center gap-3 text-[#FF6B6B] bg-white px-4 py-2 rounded-xl shadow-sm transform rotate-1 border-2 border-[#FF6B6B] border-dashed">
+                            <div className="w-3 h-3 bg-[#FF6B6B] rounded-full animate-pulse"></div>
+                            <span className="text-lg font-bold font-['Comic_Sans_MS','Chalkboard_SE','sans-serif']">Playing...</span>
                         </div>
                     </div>
-                )}
-
-                {isCurrentWord && currentStep === 'SHOW' && audioBlocked && !audioPlaying && (
-                    <div className="mt-8 flex justify-center">
-                        <div className="flex items-center gap-3 text-orange-600 animate-bounce">
-                            <span className="text-lg font-semibold">👆 Click the word to play audio</span>
-                        </div>
-                    </div>
-                )}
-
-                {isCurrentWord && currentStep === 'REPLAY' && (
-                    <>
-                    </>
                 )}
             </div>
         );
@@ -362,14 +398,19 @@ export default function LearnWordPage() {
         return [
             {
                 left: (
-                    <group position={[0, -2, 1.2]} rotation={[0, 0.4, 0]} scale={2.5}>
+                    <group>
                         {baseIndex === flippedIndex && (
-                            <HelloKittyModel
-                                autoJump={wordIndex === 0 && currentStep === 'SHOW'}
-                                isTalking={isTalking}
-                                speechText={speechText}
-                                jumpTrigger={jumpTrigger}
-                            />
+                            <>
+
+                                <group position={[0, -2, 1.2]} rotation={[0, 0.3, 0]} scale={2.5}>
+                                    <HelloKittyModel
+                                        autoJump={wordIndex === 0 && currentStep === 'SHOW'}
+                                        isTalking={isTalking}
+                                        speechText={speechText}
+                                        jumpTrigger={jumpTrigger}
+                                    />
+                                </group>
+                            </>
                         )}
                     </group>
                 ),
@@ -377,12 +418,17 @@ export default function LearnWordPage() {
             },
             {
                 left: (
-                    <group position={[0, -2, 1.2]} rotation={[0, 0.4, 0]} scale={2.5}>
+                    <group>
                         {(baseIndex + 1) === flippedIndex && (
-                            <HelloKittyModel
-                                isTalking={isTalking}
-                                speechText={speechText}
-                            />
+                            <>
+
+                                <group position={[0, -2, 1.2]} rotation={[0, 0.3, 0]} scale={2.5}>
+                                    <HelloKittyModel
+                                        isTalking={isTalking}
+                                        speechText={speechText}
+                                    />
+                                </group>
+                            </>
                         )}
                     </group>
                 ),
@@ -390,12 +436,17 @@ export default function LearnWordPage() {
             },
             {
                 left: (
-                    <group position={[0, -2, 1.2]} rotation={[0, 0.4, 0]} scale={2.5}>
+                    <group>
                         {(baseIndex + 2) === flippedIndex && (
-                            <HelloKittyModel
-                                isTalking={isTalking}
-                                speechText={speechText}
-                            />
+                            <>
+
+                                <group position={[0, -2, 1.2]} rotation={[0, 0.3, 0]} scale={2.5}>
+                                    <HelloKittyModel
+                                        isTalking={isTalking}
+                                        speechText={speechText}
+                                    />
+                                </group>
+                            </>
                         )}
                     </group>
                 ),
@@ -404,12 +455,17 @@ export default function LearnWordPage() {
             // Blank Page
             {
                 left: (
-                    <group position={[0, -2, 1.2]} rotation={[0, 0.5, 0]} scale={2.5}>
+                    <group>
                         {(baseIndex + 3) === flippedIndex && (
-                            <HelloKittyModel
-                                isTalking={isTalking}
-                                speechText={speechText}
-                            />
+                            <>
+
+                                <group position={[0, -2, 1.2]} rotation={[0, 0.3, 0]} scale={2.5}>
+                                    <HelloKittyModel
+                                        isTalking={isTalking}
+                                        speechText={speechText}
+                                    />
+                                </group>
+                            </>
                         )}
                     </group>
                 ),
@@ -457,6 +513,8 @@ export default function LearnWordPage() {
                                 pages={pages}
                                 flippedIndex={isLevelComplete ? -1 : flippedIndex}
                                 isLevelComplete={isLevelComplete}
+                                isSuccess={isSuccess}
+                                currentStep={currentStep}
                             />
                         </Suspense>
                     </group>
